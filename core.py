@@ -10,6 +10,7 @@ device = ("cuda" if torch.cuda.is_available() else "cpu")
 
 import dynamic_dataset_loader
 from plot import show_plot_and_save
+from custom_model import CL_CustomModel
 
 
 # Parametros
@@ -61,8 +62,31 @@ print("Dataset:\n",str(dataset))
 
 
 # Construimos la red
-from M1 import M1_v1
-model = M1_v1(img_channels = 1)
+net_layers = [
+        {"layer_type": "Conv2d", "in_channels": 1, "out_channels": 20, "kernel_size": 3},
+        {"layer_type": "MaxPool2d", "kernel_size": (2,2)},
+        {"layer_type": "Conv2d", "in_channels": 20, "out_channels": 50, "kernel_size": 3},
+        {"layer_type": "MaxPool2d", "kernel_size": (2,2)},
+        {"layer_type": "Conv2d", "in_channels": 50, "out_channels": 100, "kernel_size": 3},
+        {"layer_type": "MaxPool2d", "kernel_size": (2,2)},
+        {"layer_type": "Conv2d", "in_channels": 100, "out_channels": 200, "kernel_size": 3},
+        {"layer_type": "MaxPool2d", "kernel_size": (2,2)},
+
+        {"layer_type": "Flatten"},
+
+        {"layer_type": "Linear", "in_features": 200*28*38, "out_features": 500},
+        {"layer_type": "Sigmoid"},
+        {"layer_type": "Linear", "in_features": 500, "out_features": 200},
+        {"layer_type": "Sigmoid"},
+        {"layer_type": "Linear", "in_features": 200, "out_features": 50},
+        {"layer_type": "Sigmoid"},
+        {"layer_type": "Linear", "in_features": 50, "out_features": 1},
+        {"layer_type": "Sigmoid"}
+
+]
+print("creacion de net_layer_list")
+
+model = CL_CustomModel(net_layers, device)
 print("===================  Modelo  ===================")
 print(model)
 print("\n")
