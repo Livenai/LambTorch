@@ -328,7 +328,7 @@ class CL_Trainer():
 
 
 
-    def __acumAndGetMeanLoss(new_loss_number):
+    def __acumAndGetMeanLoss(self, new_loss_number):
         """
         Funcion que acumula el error y devuelve la media y desviacion
         tipica de todos los errores acumulados
@@ -340,7 +340,7 @@ class CL_Trainer():
 
 
 
-    def __resetAcumLoss():
+    def __resetAcumLoss(self):
         """ Funcion que resetea el historial de metricas loss. """
         self.loss_hist = np.array([])
 
@@ -383,7 +383,7 @@ class CL_Trainer():
             num_correct = 0
             num_samples = 0
 
-            train_bar = bar_manager.counter(total=len(train_loader), desc="Training:  ", unit='img', position=0, leave=False, color=(50,150,0))
+            train_bar = bar_manager.counter(total=len(train_loader), desc="Training:  ", unit='img', position=1, leave=False, color=(50,150,0))
             for imgs, labels in train_loader:
                 # Preparamso las imagenes
                 imgs = imgs.to(device)
@@ -415,7 +415,7 @@ class CL_Trainer():
                 optimizer.step()
 
                 # Tick de la barra de entrenamiento
-                loss_mean, loss_std = __acumAndGetMeanLoss(loss.item())
+                loss_mean, loss_std = self.__acumAndGetMeanLoss(loss.item())
                 train_bar.desc = "Trainig:  loss= " + str(round(loss_mean,4)) + "  std_dev= " + str(round(loss_std,2)) + " "
                 train_bar.update()
 
@@ -427,10 +427,10 @@ class CL_Trainer():
 
             # Borramos la barra de entrenamiento
             bar_manager.remove(train_bar)
-            __resetAcumLoss()
+            self.__resetAcumLoss()
 
             # Tick de la barra de epocas
-            prefix_epochs_bar = "Epochs:  val_acc= "+str(__checkAccuracy(validation_loader, model, history, loss_fn))+"% "
+            prefix_epochs_bar = "Epochs:  val_acc= "+str(self.__checkAccuracy(validation_loader, model, history, loss_fn))+"% "
             epochs_bar.desc = prefix_epochs_bar
             epochs_bar.update()
 
