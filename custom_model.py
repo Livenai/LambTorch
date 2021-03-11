@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+import traceback
 
 # Test de la clase al ser importado o ejecutado este archivo .py
 DEBUG_TEST = False
