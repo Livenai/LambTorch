@@ -50,6 +50,7 @@ Ejemplo de hiperparametros
 import os, enlighten
 import numpy as np
 from colored import fg
+from math import isnan, isinf
 
 import torch
 from torchsummary import summary
@@ -117,7 +118,7 @@ class CL_Trainer():
 
         # PATH
         self.parent_folder = os.path.abspath(os.path.dirname(__file__))
-        self.dataset_path = os.path.join(self.parent_folder, "clasiLamb_2-1_CUS")
+        self.dataset_path = os.path.join(self.parent_folder, "clasiLamb_2-1_CUS_20imgs")
         self.saved_models_path = os.path.join(self.parent_folder, "saved_models")
         self.plots_path = os.path.join(self.parent_folder, "plots")
 
@@ -125,6 +126,30 @@ class CL_Trainer():
         self.loss_hist = np.array([])
         self.history = {}
         self.trained = False
+        self.num_params = None
+        self.nan_or_inf = False
+
+
+    def __str__(self):
+        """
+        Imprime el nombre de la red y las metricas si las tuviera.
+        """
+        ret = self.model_name
+        ret += "  |\n\t|  "
+
+        if self.trained:
+            # Parametros
+            ret += "num_params: " + str(self.num_params)
+            # Metricas
+            ret += "  l: " + str(self.obtenerTrainLoss())
+            ret += "  val_l: " + str(self.obtenerValidationLoss())
+            ret += "  acc: " + str(self.obtenerTrainAccuracy())
+            ret += "  val_acc: " + str(self.obtenerValidationAccuracy())
+        else:
+            ret += "Not trained"
+
+
+        return ret + "\n"
 
 
 
@@ -139,6 +164,7 @@ class CL_Trainer():
 
         # Construimos la red
         model = self.__construirRed(self.net_layer_struct, prints=True)
+        self.num_params = sum(p.numel() for p in model.parameters())
 
         # Definimos la funcion de coste y el optimizador
         loss_fn, optimizer = self.__obtenerFuncionDeCosteYOptimizador(model)
@@ -424,6 +450,17 @@ class CL_Trainer():
             history["loss"].append(np.mean(ent_loss_list))
             history["accuracy"].append(float(num_correct)/float(num_samples))
 
+            # Comprobamos si hay NaN o Inf en las metricas
+            if isnan(history["loss"][-1]) or isinf(history["loss"][-1]):
+                # Guardamos las metricas y paramos de entrenar, pues seria inutil continuar
+                history["val_loss"].append(float("NaN"))
+                history["val_accuracy"].append(float("NaN"))
+                self.history = history
+                bar_manager.remove(train_bar)
+                self.nan_or_inf = True
+                break
+
+
 
             # Borramos la barra de entrenamiento
             bar_manager.remove(train_bar)
@@ -443,6 +480,10 @@ class CL_Trainer():
 
             # Guardamos el historial de metricas
             self.history = history
+
+        # Destruimos las barras
+        bar_manager.remove(epochs_bar)
+
 
 
 
