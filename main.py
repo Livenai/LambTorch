@@ -9,7 +9,7 @@ from hyperparams_generator import getRandomHyperParamsV1, printDict, printNetLay
 
 # PARAMETROS
 
-NUM_NETWORKS = 2
+NUM_NETWORKS = 3
 
 
 
@@ -33,7 +33,7 @@ def evaluate_net(net):
     if net.nan_or_inf:
         return 99999999
     else:
-        return net.obtenerValidationAccuracy()
+        return net.obtenerValidationLoss()
 
 
 

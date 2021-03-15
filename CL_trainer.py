@@ -134,6 +134,8 @@ class CL_Trainer():
         """
         Imprime el nombre de la red y las metricas si las tuviera.
         """
+        NUM_DECIMALS = 2
+
         ret = self.model_name
         ret += "  |\n\t|  "
 
@@ -141,10 +143,10 @@ class CL_Trainer():
             # Parametros
             ret += "num_params: " + str(self.num_params)
             # Metricas
-            ret += "  l: " + str(self.obtenerTrainLoss())
-            ret += "  val_l: " + str(self.obtenerValidationLoss())
-            ret += "  acc: " + str(self.obtenerTrainAccuracy())
-            ret += "  val_acc: " + str(self.obtenerValidationAccuracy())
+            ret += "  t_l: " + str(round(self.obtenerTrainLoss(), NUM_DECIMALS))
+            ret += "  t_acc: " + str(round(self.obtenerTrainAccuracy(), NUM_DECIMALS))
+            ret += "  val_l: " + str(round(self.obtenerValidationLoss(), NUM_DECIMALS))
+            ret += "  val_acc: " + str(round(self.obtenerValidationAccuracy(), NUM_DECIMALS))
         else:
             ret += "Not trained"
 
