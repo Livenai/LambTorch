@@ -118,7 +118,7 @@ class CL_Trainer():
 
         # PATH
         self.parent_folder = os.path.abspath(os.path.dirname(__file__))
-        self.dataset_path = os.path.join(self.parent_folder, "clasiLamb_2-1_CUS_20imgs")
+        self.dataset_path = os.path.join(self.parent_folder, "clasiLamb_2-1_CUS")
         self.saved_models_path = os.path.join(self.parent_folder, "saved_models")
         self.plots_path = os.path.join(self.parent_folder, "plots")
 
@@ -128,6 +128,7 @@ class CL_Trainer():
         self.trained = False
         self.num_params = None
         self.nan_or_inf = False
+        self.color = ""
 
 
     def __str__(self):
@@ -136,19 +137,19 @@ class CL_Trainer():
         """
         NUM_DECIMALS = 2
 
-        ret = self.model_name
+        ret = fg(242) + self.model_name + fg(15)
         ret += "  |\n\t|  "
 
         if self.trained:
             # Parametros
-            ret += "num_params: " + str(self.num_params)
+            ret += "num_params: " + self.color + str(self.num_params) + fg(15)
             # Metricas
-            ret += "  t_l: " + str(round(self.obtenerTrainLoss(), NUM_DECIMALS))
-            ret += "  t_acc: " + str(round(self.obtenerTrainAccuracy(), NUM_DECIMALS))
-            ret += "  val_l: " + str(round(self.obtenerValidationLoss(), NUM_DECIMALS))
-            ret += "  val_acc: " + str(round(self.obtenerValidationAccuracy(), NUM_DECIMALS))
+            ret += "  t_l: " + self.color + str(round(self.obtenerTrainLoss(), NUM_DECIMALS)) + fg(15)
+            ret += "  t_acc: " + self.color + str(round(self.obtenerTrainAccuracy()*100, NUM_DECIMALS)) + fg(15) + "%"
+            ret += "  val_l: " + self.color + str(round(self.obtenerValidationLoss(), NUM_DECIMALS)) + fg(15)
+            ret += "  val_acc: " + self.color + str(round(self.obtenerValidationAccuracy()*100, NUM_DECIMALS)) + fg(15) + "%"
         else:
-            ret += "Not trained"
+            ret += self.color + "Not trained" + fg(15)
 
 
         return ret + "\n"

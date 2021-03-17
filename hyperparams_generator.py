@@ -101,12 +101,12 @@ def getRandomConvSet(in_features):
         convSet_list.extend(new_pair)
 
         # Aplicamos la transformacion a las dimensiones de la imagen
-        print("dims: ", to_transform_img_dims)
+        #print("dims: ", to_transform_img_dims)
         to_transform_img_dims = to_transform_img_dims - (new_pair[0]["kernel_size"]-1)
-        print("-: ", to_transform_img_dims)
+        #print("-: ", to_transform_img_dims)
 
         to_transform_img_dims = (to_transform_img_dims / new_pair[1]["kernel_size"]).astype(np.int32)
-        print("/: ", to_transform_img_dims)
+        #print("/: ", to_transform_img_dims)
 
 
         # Obtenemos las out_features del par, las cuales seran las nuevas in_features
