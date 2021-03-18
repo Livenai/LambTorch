@@ -9,6 +9,7 @@ import CL_trainer
 from CL_trainer import CL_Trainer
 import hyperparams_generator
 from hyperparams_generator import getRandomHyperParamsV1, printDict, printNetLayers
+import info_handler
 
 
 

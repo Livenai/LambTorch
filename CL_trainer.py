@@ -51,6 +51,7 @@ import os, enlighten
 import numpy as np
 from colored import fg
 from math import isnan, isinf
+from datetime import datetime
 
 import torch
 from torchsummary import summary
@@ -98,12 +99,14 @@ class CL_Trainer():
         self.net_layer_struct = net_layer_struct
 
         # Parametros
+        self.hyperparams = hyperparams
         self.learning_rate = hyperparams["learning_rate"]
         self.batch_size = hyperparams["batch_size"]
         self.epochs = hyperparams["epochs"]
         self.training_percent = hyperparams["training_percent"]
         self.model_name = hyperparams["model_name"]
 
+        # Parametros que no se tocan
         self.shuffle = True
         self.pin_memory = True
         self.num_workers = 1
@@ -111,6 +114,7 @@ class CL_Trainer():
         # Colores
         self.B = fg(15)
         self.C = fg(154)
+
 
         # SEED & Torch
         torch.manual_seed(42)
@@ -123,12 +127,15 @@ class CL_Trainer():
         self.plots_path = os.path.join(self.parent_folder, "plots")
 
         # Parametros extra
+        self.model = None
         self.loss_hist = np.array([])
         self.history = {}
         self.trained = False
         self.num_params = None
         self.nan_or_inf = False
-        self.color = ""
+        self.printColor = ""
+        now = str(datetime.now())
+        self.creation_date = now[:now.rfind(".")]
 
 
     def __str__(self):
@@ -142,14 +149,14 @@ class CL_Trainer():
 
         if self.trained:
             # Parametros
-            ret += "num_params: " + self.color + str(self.num_params) + fg(15)
+            ret += "num_params: " + self.printColor + str(self.num_params) + fg(15)
             # Metricas
-            ret += "  t_l: " + self.color + str(round(self.obtenerTrainLoss(), NUM_DECIMALS)) + fg(15)
-            ret += "  t_acc: " + self.color + str(round(self.obtenerTrainAccuracy()*100, NUM_DECIMALS)) + fg(15) + "%"
-            ret += "  val_l: " + self.color + str(round(self.obtenerValidationLoss(), NUM_DECIMALS)) + fg(15)
-            ret += "  val_acc: " + self.color + str(round(self.obtenerValidationAccuracy()*100, NUM_DECIMALS)) + fg(15) + "%"
+            ret += "  t_l: " + self.printColor + str(round(self.obtenerTrainLoss(), NUM_DECIMALS)) + fg(15)
+            ret += "  t_acc: " + self.printColor + str(round(self.obtenerTrainAccuracy()*100, NUM_DECIMALS)) + fg(15) + "%"
+            ret += "  val_l: " + self.printColor + str(round(self.obtenerValidationLoss(), NUM_DECIMALS)) + fg(15)
+            ret += "  val_acc: " + self.printColor + str(round(self.obtenerValidationAccuracy()*100, NUM_DECIMALS)) + fg(15) + "%"
         else:
-            ret += self.color + "Not trained" + fg(15)
+            ret += self.printColor + "Not trained" + fg(15)
 
 
         return ret + "\n"
@@ -166,15 +173,18 @@ class CL_Trainer():
         train_loader, validation_loader = self.__obtenerDataLoader()
 
         # Construimos la red
-        model = self.__construirRed(self.net_layer_struct, prints=True)
-        self.num_params = sum(p.numel() for p in model.parameters())
+        self.model = self.__construirRed(self.net_layer_struct, prints=True)
+        self.num_params = sum(p.numel() for p in self.model.parameters())
 
         # Definimos la funcion de coste y el optimizador
-        loss_fn, optimizer = self.__obtenerFuncionDeCosteYOptimizador(model)
+        loss_fn, optimizer = self.__obtenerFuncionDeCosteYOptimizador(self.model)
 
         # Entrenamos el modelo (BLOQUEANTE!)
-        self.__iniciarEntrenamiento(model, loss_fn, optimizer, train_loader, validation_loader)
+        self.__iniciarEntrenamiento(self.model, loss_fn, optimizer, train_loader, validation_loader)
 
+        # Guardamos la grafica del entrenamiento y el modelo
+        self.guardarGrafica()
+        self.guardarModelo()
         self.trained = True
 
 
@@ -233,13 +243,31 @@ class CL_Trainer():
 
     def guardarGrafica(self):
         """
-        Guarda la grafica en la ruta dada.
+        Guarda la grafica en la ruta plot/ .
 
-        Si no se especifica ruta, la guarda en la carpeta por defecto (/plot)
-        con el nombre del modelo y las epocas.
+        Si la red tiene nan o inf en las metricas, entonces no guarda nada.
         """
-        pass
+        # Comprobamos si hay nan o inf en las metricas
+        if self.nan_or_inf:
+            return
+        else:
+            # Guardamos la grafica con el nombre del modelo
+            self.__guardarGrafica()
 
+
+    def guardarModelo(self):
+        """
+        Guarda el modelo dado en la ruta models/ .
+
+        Si la red tiene nan o inf en las metricas, entonces no gurada nada.
+        Tampoco lo hace si no se ha creado el modelo.
+        """
+        # Comprobamos si hay nan o inf en las metricas
+        if self.nan_or_inf or (self.model is None):
+            return
+        else:
+            # Guardamos el modelo
+            self.__guardarModelo()
 
 
 
@@ -501,7 +529,7 @@ class CL_Trainer():
 
 
     def __guardarGrafica(self):
-        """ Funcion que guarda la grafica con el historial de metricas. """
+        """ Funcion privada que guarda la grafica con el historial de metricas. """
 
         # Gestionamos la grafica
         if not os.path.exists(self.plots_path):
