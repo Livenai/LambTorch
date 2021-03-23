@@ -9,16 +9,9 @@ informacion de las redes:
 
 
 
-net_info{
-    hyperparams: {},
-    net_layer_struct: {},
 
 
-}
 
-TODO: pensar que cosas se necesitan guardar de una red para poder luego crear otra red
-a partir de esos datos del json. Crear todas las funciones para traducir de CL_trainer a json y viceversa.
-Crear la funcion para cargar el gran json con todas las redes, asi como para guardarlo.
 
 Despues de eso, modificar contest.py para que genere redes aleatorias, las entrene y las acumule en
 el gran json, transformandolas a ese formato. Tienen que ser dos funciones diferentes, es decir, tiene que
@@ -40,7 +33,169 @@ por ultimo, habria que modificar el visor del ranking para que muestre todas las
 datos, que muestre solo las ultimas N redes con algo mas de detalle o que muestre las ultimas N con todos los detalles.
 
 Acordarse de arreglar lo de la memoria de la gpu, es decir, que se pueda limpiar la memoria despues de cada
-entrenamiento, para poder entrenar de seguido, si no, se acaba la memori y lanza una excepcion.
+entrenamiento, para poder entrenar de seguido, si no, se acaba la memoria y lanza una excepcion.
+(o quizas es que hay que controlar si una red no cabe en la gpu)
 
 """
 import json
+import os
+from datetime import datetime
+from CL_trainer import CL_Trainer
+
+
+parent_folder = os.path.abspath(os.path.dirname(__file__))
+
+
+
+def loadTheBigTaskJson():
+    """
+    Carga el json que contiene las tareas pendientes, es decir, las redes
+    que aun NO han sido entrenadas.
+
+    Carga el archivo en la ruta /train_data/the_big_task_json.json
+    """
+    # Obtenemos la ruta
+    train_data_path = os.path.join(parent_folder, "train_data")
+
+    # Comprobamos si la ruta existe
+    if not os.path.exists(train_data_path):
+        os.makedirs(train_data_path)
+
+    # Comprobamos si el archivo existe
+    json_path = os.path.join(train_data_path, "the_big_task_json.json")
+
+    if os.path.exists(json_path):
+        # Si existe, lo cargamos y lo devolvemos
+        json_file = open(json_path)
+        return json.load(json_file)
+
+    else:
+        # Si NO existe, creamos uno vacio y lo devolvemos
+        return {}
+
+def loadTheBigTrainedJson():
+    """
+    Carga el json que contiene las tareas completadas, es decir, las redes
+    que YA han sido entrenadas y, por tanto, tienen metricas.
+
+    Carga el archivo en la ruta /train_data/the_big_trained_json.json
+    """
+    # Obtenemos la ruta
+    train_data_path = os.path.join(parent_folder, "train_data")
+
+    # Comprobamos si la ruta existe
+    if not os.path.exists(train_data_path):
+        os.makedirs(train_data_path)
+
+    # Comprobamos si el archivo existe
+    json_path = os.path.join(train_data_path, "the_big_trained_json.json")
+
+    if os.path.exists(json_path):
+        # Si existe, lo cargamos y lo devolvemos
+        json_file = open(json_path)
+        return json.load(json_file)
+
+    else:
+        # Si NO existe, creamos uno vacio y lo devolvemos
+        return {}
+
+
+def saveTheBigTaskJson(big_json):
+    """
+    Guarda el json que contiene las tareas pendientes, es decir, las redes
+    que aun NO han sido entrenadas.
+
+    Guarda el archivo en la ruta /train_data/the_big_task_json.json
+    """
+    # Obtenemos la ruta
+    train_data_path = os.path.join(parent_folder, "train_data")
+
+    # Comprobamos si la ruta existe
+    if not os.path.exists(train_data_path):
+        os.makedirs(train_data_path)
+
+    # Lo guardamos en la ruta del archivo
+    json_path = os.path.join(train_data_path, "the_big_task_json.json")
+
+    json_file = open(json_path, 'w')
+    json.dump(big_json, json_file)
+
+
+def saveTheBigTrainedJson(big_json):
+    """
+    Guarda el json que contiene las tareas completadas, es decir, las redes
+    que YA han sido entrenadas y, por tanto, tienen metricas.
+
+    Guarda el archivo en la ruta /train_data/the_big_trained_json.json
+    """
+    # Obtenemos la ruta
+    train_data_path = os.path.join(parent_folder, "train_data")
+
+    # Comprobamos si la ruta existe
+    if not os.path.exists(train_data_path):
+        os.makedirs(train_data_path)
+
+    # Lo guardamos en la ruta del archivo
+    json_path = os.path.join(train_data_path, "the_big_trained_json.json")
+
+    json_file = open(json_path, 'w')
+    json.dump(big_json, json_file)
+
+def CL_trainer2json(trainer):
+    """
+    Crea y devuelve un json que describe el objeto CL_trainer.
+    """
+
+    ret = {}
+    # Comprobamos si el modelo ha sido entrenado
+    if trainer.trained:
+        # Si ha sido entrenado:
+        # Guardamos lo inprescindible
+        ret["net_layer_struct"] = trainer.net_layer_struct
+        ret["hyperparams"] = trainer.hyperparams
+
+        # Guardamos las metricas
+        ret["history"] = trainer.history
+
+        # Guardamos la info extra
+        ret["trained"] = trainer.trained
+        ret["num_params"] = trainer.num_params
+        ret["nan_or_inf"] = trainer.nan_or_inf
+        ret["creation_date"] = trainer.creation_date
+        ret["model_name"] = trainer.model_name
+
+        now = str(datetime.now())
+        ret["last_modification_date"] = now[:now.rfind(".")]
+
+    else:
+        # Si NO ha sido entrenada:
+        # Guardamos lo imprescindible
+        ret["net_layer_struct"] = trainer.net_layer_struct
+        ret["hyperparams"] = trainer.hyperparams
+
+        # Guardamos info extra
+        ret["trained"] = trainer.trained
+        ret["creation_date"] = trainer.creation_date
+        ret["model_name"] = trainer.model_name
+
+        now = str(datetime.now())
+        ret["last_modification_date"] = now[:now.rfind(".")]
+
+
+    return ret
+
+
+
+def json2CL_trainer(json_data):
+    """
+    Crea y devuelve un objeto CL_trainer a partir de su version en json.
+    """
+
+    # Creamos un objeto nuevo
+    ret_obj = CL_Trainer(json_data["hyperparams"], json_data["net_layer_struct"])
+
+    # Cargamos los valores
+    ret_obj.loadFromJson(json_data)
+
+    # Devolvemos
+    return ret_obj

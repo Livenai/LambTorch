@@ -122,13 +122,14 @@ class CL_Trainer():
 
         # PATH
         self.parent_folder = os.path.abspath(os.path.dirname(__file__))
+        self.train_data_path = os.path.join(self.parent_folder, "train_data")
         self.dataset_path = os.path.join(self.parent_folder, "clasiLamb_2-1_CUS")
-        self.saved_models_path = os.path.join(self.parent_folder, "saved_models")
-        self.plots_path = os.path.join(self.parent_folder, "plots")
+        self.saved_models_path = os.path.join(self.train_data_path, "saved_models")
+        self.plots_path = os.path.join(self.train_data_path, "plots")
 
         # Parametros extra
         self.model = None
-        self.loss_hist = np.array([])
+        self.loss_hist = np.array([]) # Uso temporal
         self.history = {}
         self.trained = False
         self.num_params = None
@@ -136,6 +137,7 @@ class CL_Trainer():
         self.printColor = ""
         now = str(datetime.now())
         self.creation_date = now[:now.rfind(".")]
+        self.last_modification_date = self.creation_date
 
 
     def __str__(self):
@@ -316,6 +318,7 @@ class CL_Trainer():
         Para mas informacion sobre la forma que net_layer_struct
         debe tener, mirar el comentario del constructor de CL_CustomModel
         en custom_model.
+
         """
 
 
@@ -518,14 +521,14 @@ class CL_Trainer():
 
 
 
-    def __guardarModelo(self, model):
+    def __guardarModelo(self):
         """ Funcion privada que guarda el modelo dado. """
         # Guardamos el modelo final
         if not os.path.exists(self.saved_models_path):
             os.makedirs(self.saved_models_path)
 
         model_name_and_path = os.path.join(self.saved_models_path, self.model_name)
-        torch.save(model, model_name_and_path)
+        torch.save(self.model, model_name_and_path)
 
 
     def __guardarGrafica(self):
@@ -537,3 +540,38 @@ class CL_Trainer():
 
         plot_name_and_path = os.path.join(self.plots_path, self.model_name)
         show_plot_and_save(self.history, just_save=True, save_name=plot_name_and_path)
+
+
+    def loadFromJson(self, json_data):
+        """
+        Carga los valores de los atributos desde un json
+
+        Soporta redes entrenadas y no entrenadas.
+        """
+
+        if json_data["trained"] == True:
+            # Cargamos los atributos y las metricas
+            # Cargamos lo inprescindible
+            self.net_layer_struct = json_data["net_layer_struct"]
+            self.hyperparams = json_data["hyperparams"]
+
+            # Cargamos las metricas
+            self.history = json_data["history"]
+
+            # Cargamos la info extra
+            self.trained = json_data["trained"]
+            self.num_params = json_data["num_params"]
+            self.nan_or_inf = json_data["nan_or_inf"]
+            self.creation_date = json_data["creation_date"]
+            self.last_modification_date = json_data["last_modification_date"]
+
+        else:
+            # Cargamos los atributos para el entrenamiento
+            # Cargamos lo imprescindible
+            self.net_layer_struct = json_data["net_layer_struct"]
+            self.hyperparams = json_data["hyperparams"]
+
+            # Cargamos info extra
+            self.trained = json_data["trained"]
+            self.creation_date = json_data["creation_date"]
+            self.last_modification_date = json_data["last_modification_date"]

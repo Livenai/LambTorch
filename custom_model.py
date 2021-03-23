@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 import traceback
+import copy
 
 # Test de la clase al ser importado o ejecutado este archivo .py
 DEBUG_TEST = False
@@ -9,7 +10,7 @@ DEBUG_TEST = False
 class CL_CustomModel(nn.Module):
     """ ClasiLamb Custom Model v1"""
 
-    def __init__(self, net_layer_list, device, params_datatype="float"):
+    def __init__(self, original_net_layer_list, device, params_datatype="float"):
         """
         Ctor. de la clase. Recibe como parametros un dictionary (json), lista o
         tupla con la morfologia y parametrizacion de la red a construir.
@@ -79,6 +80,9 @@ class CL_CustomModel(nn.Module):
 
         # Variables de clase
         self.called_func_list = []
+
+        # Clonamos el dict para poder modificarlo
+        net_layer_list = copy.deepcopy(original_net_layer_list)
 
         # Comprobamos si la variable de entrada es una lista, tupla o un dict
         if net_layer_list is list or tuple:
