@@ -3,6 +3,7 @@ En este archivo se recogen las funciones que permitiran al usuario
 inicializar el concurso de redes, crearlas usando los generadores aleatorios,
 entrenarlas, ordenarlas y guardarlas.
 """
+import time
 from colored import fg
 import signal
 import CL_trainer
@@ -12,6 +13,9 @@ from hyperparams_generator import getRandomHyperParamsV1, printDict, printNetLay
 import info_handler
 
 
+
+# PARAMETROS
+GPU_BREAK_TIME = 5 * 60 # 5 mins de descanso entre entrenamientos
 
 
 def CtrlC_signal_handler(sig, frame):
@@ -277,6 +281,7 @@ def trainRemainingTasks():
     control = 0
     while control is not None:
         control = trainTask()
+        time.sleep(GPU_BREAK_TIME)
 
     # No quedan tareas por realizar
     sendMSG("Se han acabado las tareas con exito.")
