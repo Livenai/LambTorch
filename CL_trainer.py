@@ -52,6 +52,7 @@ import numpy as np
 from colored import fg
 from math import isnan, isinf
 from datetime import datetime
+from copy import deepcopy
 
 import torch
 from torchsummary import summary
@@ -129,6 +130,10 @@ class CL_Trainer():
 
         # Parametros extra
         self.model = None
+        self.net_train_loss = None
+        self.net_train_accuracy = None
+        self.net_val_loss = None
+        self.net_val_accuracy = None
         self.loss_hist = np.array([]) # Uso temporal
         self.history = {}
         self.trained = False
@@ -138,6 +143,10 @@ class CL_Trainer():
         now = str(datetime.now())
         self.creation_date = now[:now.rfind(".")]
         self.last_modification_date = self.creation_date
+
+        # Aux para el early stopping
+        self.best_test_loss = 999999999
+        self.current_best_model = None
 
 
     def __str__(self):
@@ -212,33 +221,67 @@ class CL_Trainer():
         else:
             print(fg(1) + "[!] Aun no se ha entrenado este modelo." + fg(15))
 
-    def obtenerTrainLoss(self):
-        """ Devuelve el Train Loss final. """
+
+    def obtenerTrainLoss(self, epoch=None):
+        """
+        Devuelve el Train Loss de una epoca.
+
+        Si  no se especifica ningun valor, devuelve el Train Loss definitivo
+        de la red.
+        """
         if self.trained:
-            return self.history["loss"][-1]
+            if epoch is None:
+                return self.net_train_loss
+            else:
+                return self.history["loss"][-1]
         else:
             print(fg(1) + "[!] Aun no se ha entrenado este modelo." + fg(15))
 
 
-    def obtenerValidationLoss(self):
-        """ Devuelve el Validation Loss final. """
+    def obtenerValidationLoss(self, epoch=None):
+        """
+        Devuelve el Validation Loss de una epoca.
+
+        Si  no se especifica ningun valor, devuelve el Validation Loss definitivo
+        de la red.
+        """
         if self.trained:
-            return self.history["val_loss"][-1]
+            if epoch is None:
+                return self.net_val_loss
+            else:
+                return self.history["val_loss"][-1]
         else:
             print(fg(1) + "[!] Aun no se ha entrenado este modelo." + fg(15))
 
-    def obtenerTrainAccuracy(self):
-        """ Devuelve el Train Accuracy final. """
+
+    def obtenerTrainAccuracy(self, epoch=None):
+        """
+        Devuelve el Train Accuracy de una epoca.
+
+        Si  no se especifica ningun valor, devuelve el Train Accuracy definitivo
+        de la red.
+        """
         if self.trained:
-            return self.history["accuracy"][-1]
+            if epoch is None:
+                return self.net_train_accuracy
+            else:
+                return self.history["accuracy"][-1]
         else:
             print(fg(1) + "[!] Aun no se ha entrenado este modelo." + fg(15))
 
 
-    def obtenerValidationAccuracy(self):
-        """ Devuelve el Validation Accuracy final. """
+    def obtenerValidationAccuracy(self, epoch=None):
+        """
+        Devuelve el Validation Accuracy de una epoca.
+
+        Si  no se especifica ningun valor, devuelve el Validation Accuracy definitivo
+        de la red.
+        """
         if self.trained:
-            return self.history["val_accuracy"][-1]
+            if epoch is None:
+                return self.net_val_accuracy
+            else:
+                return self.history["val_accuracy"][-1]
         else:
             print(fg(1) + "[!] Aun no se ha entrenado este modelo." + fg(15))
 
@@ -259,7 +302,7 @@ class CL_Trainer():
 
     def guardarModelo(self):
         """
-        Guarda el modelo dado en la ruta models/ .
+        Guarda el modelo de la clase en la ruta models/ .
 
         Si la red tiene nan o inf en las metricas, entonces no gurada nada.
         Tampoco lo hace si no se ha creado el modelo.
@@ -484,6 +527,7 @@ class CL_Trainer():
             history["loss"].append(np.mean(ent_loss_list))
             history["accuracy"].append(float(num_correct)/float(num_samples))
 
+
             # Comprobamos si hay NaN o Inf en las metricas
             if isnan(history["loss"][-1]) or isinf(history["loss"][-1]):
                 # Guardamos las metricas y paramos de entrenar, pues seria inutil continuar
@@ -492,8 +536,8 @@ class CL_Trainer():
                 self.history = history
                 bar_manager.remove(train_bar)
                 self.nan_or_inf = True
+                print("\n[!] La red contiene NaN \n")
                 break
-
 
 
             # Borramos la barra de entrenamiento
@@ -504,6 +548,25 @@ class CL_Trainer():
             prefix_epochs_bar = "Epochs:  val_acc= "+str(self.__checkAccuracy(validation_loader, model, history, loss_fn))+"% "
             epochs_bar.desc = prefix_epochs_bar
             epochs_bar.update()
+
+
+            # Early stop. Guardamos la mejor epoca hasta ahora
+            # Si esta epoca es la mejor:
+            test_loss = history["val_loss"][-1]
+            test_acc  = history["val_accuracy"][-1]
+            if test_loss < self.best_test_loss:
+                # Guardamos su modelo temporalmente
+                self.current_best_model = deepcopy(model)
+
+                # Guardamos sus metricas
+                self.net_train_loss = history["loss"][-1]
+                self.net_train_accuracy = history["accuracy"][-1]
+                self.net_val_loss = test_loss
+                self.net_val_accuracy = test_acc
+
+                # Actualizamos el mejor loss
+                self.best_test_loss = test_loss
+
 
             # Mostramos las metricas
             colors = ["#ff6163", "#ff964f", "#20c073", "#b1ff65"]
@@ -517,6 +580,11 @@ class CL_Trainer():
 
         # Destruimos las barras
         bar_manager.remove(epochs_bar)
+
+        # Reestablecemos el modelo al modelo de la mejor epoca
+        self.model = self.current_best_model
+
+        print("\n\n Se acabo el entrenamiento\n\n")
 
 
 
@@ -564,6 +632,10 @@ class CL_Trainer():
             self.nan_or_inf = json_data["nan_or_inf"]
             self.creation_date = json_data["creation_date"]
             self.last_modification_date = json_data["last_modification_date"]
+            self.net_train_loss = json_data["net_train_loss"]
+            self.net_train_accuracy = json_data["net_train_accuracy"]
+            self.net_val_loss = json_data["net_val_loss"]
+            self.net_val_accuracy = json_data["net_val_accuracy"]
 
         else:
             # Cargamos los atributos para el entrenamiento

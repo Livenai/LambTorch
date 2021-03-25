@@ -163,6 +163,11 @@ def CL_trainer2json(trainer):
         ret["nan_or_inf"] = trainer.nan_or_inf
         ret["creation_date"] = trainer.creation_date
         ret["model_name"] = trainer.model_name
+        ret["net_train_loss"] = trainer.net_train_loss
+        ret["net_train_accuracy"] = trainer.net_train_accuracy
+        ret["net_val_loss"] = trainer.net_val_loss
+        ret["net_val_accuracy"] = trainer.net_val_accuracy
+
 
         now = str(datetime.now())
         ret["last_modification_date"] = now[:now.rfind(".")]

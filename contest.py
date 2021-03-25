@@ -4,6 +4,7 @@ inicializar el concurso de redes, crearlas usando los generadores aleatorios,
 entrenarlas, ordenarlas y guardarlas.
 """
 import time
+from datetime import timedelta
 from colored import fg
 import signal
 import CL_trainer
@@ -15,7 +16,7 @@ import info_handler
 
 
 # PARAMETROS
-GPU_BREAK_TIME = 5 * 60 # 5 mins de descanso entre entrenamientos
+GPU_BREAK_TIME = 3#5 * 60 # 5 mins de descanso entre entrenamientos
 
 
 def CtrlC_signal_handler(sig, frame):
@@ -281,6 +282,7 @@ def trainRemainingTasks():
     control = 0
     while control is not None:
         control = trainTask()
+        print("\n\n[!] Dando un descanso a la GPU de " + str(timedelta(seconds=GPU_BREAK_TIME)) + "\n\n")
         time.sleep(GPU_BREAK_TIME)
 
     # No quedan tareas por realizar
