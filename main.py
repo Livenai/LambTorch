@@ -3,7 +3,7 @@ import contest
 
 # PARAMETROS
 
-NUM_NETWORKS = 5
+NUM_NETWORKS = 10
 
 
 

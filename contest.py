@@ -16,7 +16,7 @@ import info_handler
 
 
 # PARAMETROS
-GPU_BREAK_TIME = 3#5 * 60 # 5 mins de descanso entre entrenamientos
+GPU_BREAK_TIME = 5 * 60 # 5 mins de descanso entre entrenamientos
 
 
 def CtrlC_signal_handler(sig, frame):
