@@ -345,7 +345,7 @@ def trainTask():
     try:
         trainNetPool([task])
     except:
-        sendMSG("La red no cabe en la GPU. Descartando...", is_error=True)
+        sendMSG("La red no cabe en la GPU. Descartando...", is_warning=True)
         return 0
 
 
