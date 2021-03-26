@@ -1,4 +1,6 @@
 import contest
+import telegram_debugger
+from telegram_debugger import sendMSG
 
 
 # PARAMETROS
@@ -14,4 +16,7 @@ contest.generateTasks(NUM_NETWORKS)
 contest.trainRemainingTasks()
 
 # Mostramos el ranking
-contest.printRankingAux()
+contest.showRanking()
+
+# Mensaje final
+contest.sendFinalMSG()

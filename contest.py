@@ -12,7 +12,8 @@ from CL_trainer import CL_Trainer
 import hyperparams_generator
 from hyperparams_generator import getRandomHyperParamsV1, printDict, printNetLayers
 import info_handler
-
+import telegram_debugger
+from telegram_debugger import sendMSG
 
 
 # PARAMETROS
@@ -24,8 +25,8 @@ def CtrlC_signal_handler(sig, frame):
     Esta funcion se ejecuta cada vez que el usuario utiliza la
     combinacion Ctrl+C
     """
-    print("\n\n\n\n\n\n\n\n")
-    print('=========================  Closing Program  =========================')
+    print("\n\n\n")
+    sendMSG("Ctrl+C o SIGINT detectado, cerrando programa... ", is_error=True)
     exit(0)
 # Conectamos la señal con la funcion
 signal.signal(signal.SIGINT, CtrlC_signal_handler)
@@ -44,8 +45,10 @@ def evaluate_net(net):
         return net.obtenerValidationLoss()
 
 
-def printRanking(net_list, verbose = False, just_return_str = False):
+def __printRanking(net_list, just_return_str=False, num_nets_to_show=-1, colored_text=False, str_type="classic"):
     """
+    Privado.
+
     Musetra el ranking pasado por parametros. El orden de muestra es el orden
     de la estructura que reciba, por lo que debera estar ordenada previamente.
 
@@ -54,31 +57,108 @@ def printRanking(net_list, verbose = False, just_return_str = False):
     Si verbose esta activo mostrara gran cantidad de informacion de cada una
     de las redes.
 
-    Si just_return_str esta activo, en vez de imprimir el ranking, lo devuelve
-    como string.
+    Si just_return_str esta activo, no imprime el ranking por pantalla.
+    Solo lo devuelve como str.
+
+    Si num_nets_to_show vale -1, se mostraran TODAS las redes. En otro caso
+    se mostraran solo las  num_nets_to_show  mejores redes.
+
+    El parametro  str_type  define el tipo de impresion.
+    Puede ser:
+            "classic" - Clasico. Info en lineas normales.
+            "tab" - Tabulado. Cada dato en una tabulacion mas.
+            "extended" - Extendido. Muestra mucha info de cada red.
     """
+    # Cabecera
     ret = ""
+    no_color_ret = ""
 
     ret += "\n╔════════════════════════════════════  "
     ret += fg(118) + "Ranking" + fg(15)
     ret += "  ════════════════════════════════════╗\n\n"
 
-    for i, net in enumerate(net_list):# ╔ ╚ ╩ ╦ ╠ ═ ╬ ╝ ╗ ║ ╣
-        if just_return_str:
-            clor = ""
-            net.color = clor
-        else:
+    no_color_ret += "\n╔════════════════════════════════════  "
+    no_color_ret += "Ranking"
+    no_color_ret += "  ════════════════════════════════════╗\n\n"
+
+
+    # Cuerpo del ranking, mas extenso o no en funcion de verbose
+    if str_type == "classic":
+        # Informacion ligera de las redes
+        for i, net in enumerate(net_list):# ╔ ╚ ╩ ╦ ╠ ═ ╬ ╝ ╗ ║ ╣
+            if i == num_nets_to_show:
+                break
             clor = fg((i%77)+154)
-            net.color = clor
-        ret += "╔══  " + clor + str(i+1) + fg(15)
-        ret += "º  ════════════════════════════════════════════════════════════════════════\n"
-        ret += str(net) + "\n"
+            net.printColor = clor
+            net.resetColor = fg(15)
+
+            ret += "╔══  " + clor + str(i+1) + fg(15)
+            ret += "º  ════════════════════════════════════════════════════════════════════════\n"
+            ret += str(net) + "\n"
+
+            net.printColor = ""
+            net.resetColor = ""
+
+            no_color_ret += "╔══  " + str(i+1)
+            no_color_ret += "º  ════════════════════════════════════════════════════════════════════════\n"
+            no_color_ret += str(net) + "\n"
+
+    elif str_type == "tab":
+        # Informacion ligera de las redes
+        for i, net in enumerate(net_list):# ╔ ╚ ╩ ╦ ╠ ═ ╬ ╝ ╗ ║ ╣
+            if i == num_nets_to_show:
+                break
+            clor = fg((i%77)+154)
+            net.printColor = clor
+            net.resetColor = fg(15)
+
+            ret += "╔══  " + clor + str(i+1) + fg(15)
+            ret += "º  ════════════════════════════════════════════════════════════════════════\n"
+            ret += str(net.getTabuledSTR()) + "\n"
+
+            net.printColor = ""
+            net.resetColor = ""
+
+            no_color_ret += "╔══  " + str(i+1)
+            no_color_ret += "º  ════════════════════════════════════════════════════════════════════════\n"
+            no_color_ret += str(net.getTabuledSTR()) + "\n"
+
+    elif str_type == "extended":
+        # Info extendida de cada red
+        for i, net in enumerate(net_list):# ╔ ╚ ╩ ╦ ╠ ═ ╬ ╝ ╗ ║ ╣
+            if i == num_nets_to_show:
+                break
+            clor = fg((i%77)+154)
+            net.printColor = clor
+            net.resetColor = fg(15)
+
+            ret += "╔══  " + clor + str(i+1) + fg(15)
+            ret += "º  ════════════════════════════════════════════════════════════════════════\n"
+            ret += str(net.getExtendedSTR()) + "\n"
+
+            net.printColor = ""
+            net.resetColor = ""
+
+            no_color_ret += "╔══  " + str(i+1)
+            no_color_ret += "º  ════════════════════════════════════════════════════════════════════════\n"
+            no_color_ret += str(net.getExtendedSTR()) + "\n"
+
+    else:
+        raise Exception("Parametro str_type invalido en la funcion __printRanking:  " + str(str_type))
+
 
 
     if just_return_str:
-        return ret
+        if colored_text:
+            return ret
+        else:
+            return no_color_ret
     else:
-        print(ret)
+        if colored_text:
+            print(ret)
+        else:
+            print(no_color_ret)
+
 
 
 
@@ -126,12 +206,6 @@ def sortNetPool(net_pool, criterio=None):
         net_pool.sort(key=criterio)
         return net_pool
 
-
-def sendMSG(msg):
-    """
-    De momento solo imprime el mensaje por pantalla
-    """
-    print(msg)
 
 
 
@@ -198,7 +272,7 @@ def readOneTask():
         # Devolvemos la tarea
         return info_handler.json2CL_trainer(ret_jsoned_net)
     else:
-        print(fg(226) + "\n[!] No quedan tareas por hacer en el gran json de tareas [!]\n" + fg(15))
+        sendMSG("No quedan tareas por hacer en el gran json de tareas", is_warning=True)
         return None
 
 
@@ -255,17 +329,25 @@ def trainTask():
     de advertencia y devuelve None.
 
     Devuelve 0 en otro caso.
+
+    Si no se puede entrenar la red por que no cabe en la gpu, envia un mensaje
+    y termina. Descarta la red.
     """
     # Obtenemos una tarea
     task = readOneTask()
 
     if task is None:
         # Notificamos que no quedan tareas por hacer y paramos
-        sendMSG("No quedan tareas por hacer")
+        sendMSG("No quedan tareas por hacer", is_warning=True)
         return None
 
     # Entrenamos la tarea
-    trainNetPool([task])
+    try:
+        trainNetPool([task])
+    except:
+        sendMSG("La red no cabe en la GPU. Descartando...", is_error=True)
+        return 0
+
 
     # Guardamos los resultados de la tarea en el gran json de entrenamientos
     if task.nan_or_inf == False:
@@ -282,17 +364,17 @@ def trainRemainingTasks():
     control = 0
     while control is not None:
         control = trainTask()
-        print("\n\n[!] Dando un descanso a la GPU de " + str(timedelta(seconds=GPU_BREAK_TIME)) + "\n\n")
+        sendMSG("Dando un descanso a la GPU de " + str(timedelta(seconds=GPU_BREAK_TIME)) + "\n\n")
         time.sleep(GPU_BREAK_TIME)
 
     # No quedan tareas por realizar
-    sendMSG("Se han acabado las tareas con exito.")
+    sendMSG("Se han acabado todas las tareas con exito.")
 
 
 
-def printRankingAux():
+def showRanking(num_nets_to_show = -1):
     """
-    Funcion provisional que muestra el ranking usando el gran json de
+    Muestra el ranking usando el gran json de
     entrenamientos realizados.
 
     En el futuro se usara un diccionario ordenado, no teniendo que ordenar
@@ -310,5 +392,29 @@ def printRankingAux():
     # Ordenamos la lista
     sorted_net_list = sortNetPool(net_list)
 
-    # Mostramos la lista
-    printRanking(sorted_net_list)
+    # Mostramos el ranking por pantalla con colores
+    __printRanking(sorted_net_list, colored_text=True, num_nets_to_show=num_nets_to_show)
+
+    # Obtenemos el ranking como str sin colores
+    str_ranking = __printRanking(sorted_net_list, just_return_str=True, num_nets_to_show=num_nets_to_show, str_type="tab")
+
+    # Enviamos ranking al admin
+    sendMSG(str_ranking, dont_print=True)
+
+
+def sendFinalMSG():
+    """
+    realiza el envio y muestra el mensaje final. Indicando que todo
+    ha finalizado correctamente.
+    """
+    msg = ""
+
+    for i in range(6):
+        msg += ":white_large_square:"
+
+    msg += "  Ejecucion terminada  "
+
+    for i in range(6):
+        msg += ":white_large_square:"
+
+    sendMSG(msg)

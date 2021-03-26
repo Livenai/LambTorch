@@ -122,8 +122,6 @@ class CL_CustomModel(nn.Module):
 
 
 
-
-
     def forward(self, x):
         x = self.sequential_container(x)
         return x

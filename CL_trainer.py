@@ -63,6 +63,8 @@ device = ("cuda" if torch.cuda.is_available() else "cpu")
 import dynamic_dataset_loader
 from plot import show_plot_and_save
 from custom_model import CL_CustomModel
+import telegram_debugger
+from telegram_debugger import sendMSG
 
 
 
@@ -140,6 +142,7 @@ class CL_Trainer():
         self.num_params = None
         self.nan_or_inf = False
         self.printColor = ""
+        self.resetColor = ""
         now = str(datetime.now())
         self.creation_date = now[:now.rfind(".")]
         self.last_modification_date = self.creation_date
@@ -151,27 +154,103 @@ class CL_Trainer():
 
     def __str__(self):
         """
-        Imprime el nombre de la red y las metricas si las tuviera.
+        Devuelve un String con el nombre de la red y las metricas si las tuviera.
+
+        ESTILO CLASICO
+
+        Solo colorea el String si printColor y resetColor son un color.
         """
         NUM_DECIMALS = 2
 
-        ret = fg(242) + self.model_name + fg(15)
+        name_color = ""
+
+        if (self.resetColor != "") and (self.printColor != ""):
+            name_color = fg(242)
+
+
+        ret = name_color + self.model_name + self.resetColor
         ret += "  |\n\t|  "
 
         if self.trained:
             # Parametros
-            ret += "num_params: " + self.printColor + str(self.num_params) + fg(15)
+            ret += "num_params: " + self.printColor + str(self.num_params) + self.resetColor
             # Metricas
-            ret += "  t_l: " + self.printColor + str(round(self.obtenerTrainLoss(), NUM_DECIMALS)) + fg(15)
-            ret += "  t_acc: " + self.printColor + str(round(self.obtenerTrainAccuracy()*100, NUM_DECIMALS)) + fg(15) + "%"
-            ret += "  val_l: " + self.printColor + str(round(self.obtenerValidationLoss(), NUM_DECIMALS)) + fg(15)
-            ret += "  val_acc: " + self.printColor + str(round(self.obtenerValidationAccuracy()*100, NUM_DECIMALS)) + fg(15) + "%"
+            ret += "  t_l: " + self.printColor + str(round(self.obtenerTrainLoss(), NUM_DECIMALS)) + self.resetColor
+            ret += "  t_acc: " + self.printColor + str(round(self.obtenerTrainAccuracy()*100, NUM_DECIMALS)) + self.resetColor + "%"
+            ret += "  val_l: " + self.printColor + str(round(self.obtenerValidationLoss(), NUM_DECIMALS)) + self.resetColor
+            ret += "  val_acc: " + self.printColor + str(round(self.obtenerValidationAccuracy()*100, NUM_DECIMALS)) + self.resetColor + "%"
         else:
-            ret += self.printColor + "Not trained" + fg(15)
+            ret += self.printColor + "Not trained" + self.resetColor
 
 
         return ret + "\n"
 
+
+    def getTabuledSTR(self):
+        """
+        Devuelve un String con el nombre de la red y las metricas si las tuviera.
+
+        ESTILO TABULADO
+
+        Solo colorea el String si printColor y resetColor son un color.
+        """
+        NUM_DECIMALS = 2
+
+        name_color = ""
+
+        if (self.resetColor != "") and (self.printColor != ""):
+            name_color = fg(242)
+
+
+        ret = name_color + self.model_name + self.resetColor
+
+        if self.trained:
+            # Parametros
+            ret += "\n\nnum_params: " + self.printColor + str(self.num_params) + self.resetColor
+            # Metricas
+            ret += "\n\tt_l: " + self.printColor + str(round(self.obtenerTrainLoss(), NUM_DECIMALS)) + self.resetColor
+            ret += "\n\t\tt_acc: " + self.printColor + str(round(self.obtenerTrainAccuracy()*100, NUM_DECIMALS)) + self.resetColor + "%"
+            ret += "\n\t\t\tval_l: " + self.printColor + str(round(self.obtenerValidationLoss(), NUM_DECIMALS)) + self.resetColor
+            ret += "\n\t\t\t\tval_acc: " + self.printColor + str(round(self.obtenerValidationAccuracy()*100, NUM_DECIMALS)) + self.resetColor + "%"
+        else:
+            ret += self.printColor + "Not trained" + self.resetColor
+
+
+        return ret + "\n"
+
+
+    def getExtendedSTR(self):
+        """
+        Devuelve un String con GRAN cantidad de informacion sobre la red.
+
+        ESTILO EXTENDIDO
+
+        Solo colorea el String si printColor y resetColor son un color.
+        """
+        return "[NYI]"
+        NUM_DECIMALS = 2
+
+        name_color = ""
+
+        if (self.resetColor != "") and (self.printColor != ""):
+            name_color = fg(242)
+
+
+        ret = name_color + self.model_name + self.resetColor
+
+        if self.trained:
+            # Parametros
+            ret += "\nnum_params: " + self.printColor + str(self.num_params) + self.resetColor
+            # Metricas
+            ret += "\n\tt_l: " + self.printColor + str(round(self.obtenerTrainLoss(), NUM_DECIMALS)) + self.resetColor
+            ret += "\n\t\tt_acc: " + self.printColor + str(round(self.obtenerTrainAccuracy()*100, NUM_DECIMALS)) + self.resetColor + "%"
+            ret += "\n\t\t\tval_l: " + self.printColor + str(round(self.obtenerValidationLoss(), NUM_DECIMALS)) + self.resetColor
+            ret += "\n\t\t\t\tval_acc: " + self.printColor + str(round(self.obtenerValidationAccuracy()*100, NUM_DECIMALS)) + self.resetColor + "%"
+        else:
+            ret += self.printColor + "Not trained" + self.resetColor
+
+
+        return ret + "\n"
 
 
     def iniciarEntrenamiento(self):
@@ -184,14 +263,16 @@ class CL_Trainer():
         train_loader, validation_loader = self.__obtenerDataLoader()
 
         # Construimos la red
-        self.model = self.__construirRed(self.net_layer_struct, prints=True)
+        self.model = self.__construirRed(self.net_layer_struct)
         self.num_params = sum(p.numel() for p in self.model.parameters())
 
         # Definimos la funcion de coste y el optimizador
         loss_fn, optimizer = self.__obtenerFuncionDeCosteYOptimizador(self.model)
 
         # Entrenamos el modelo (BLOQUEANTE!)
+        sendMSG("Iniciando entrenamiento de la red...")
         self.__iniciarEntrenamiento(self.model, loss_fn, optimizer, train_loader, validation_loader)
+        sendMSG("Entrenamiento de la red terminado.")
 
         # Guardamos la grafica del entrenamiento y el modelo
         self.guardarGrafica()
@@ -219,7 +300,7 @@ class CL_Trainer():
         if self.trained:
             return self.history
         else:
-            print(fg(1) + "[!] Aun no se ha entrenado este modelo." + fg(15))
+            sendMSG("Aun no se ha entrenado este modelo.", is_warning=True)
 
 
     def obtenerTrainLoss(self, epoch=None):
@@ -235,7 +316,7 @@ class CL_Trainer():
             else:
                 return self.history["loss"][-1]
         else:
-            print(fg(1) + "[!] Aun no se ha entrenado este modelo." + fg(15))
+            sendMSG("Aun no se ha entrenado este modelo.", is_warning=True)
 
 
     def obtenerValidationLoss(self, epoch=None):
@@ -251,7 +332,7 @@ class CL_Trainer():
             else:
                 return self.history["val_loss"][-1]
         else:
-            print(fg(1) + "[!] Aun no se ha entrenado este modelo." + fg(15))
+            sendMSG("Aun no se ha entrenado este modelo.", is_warning=True)
 
 
     def obtenerTrainAccuracy(self, epoch=None):
@@ -267,7 +348,7 @@ class CL_Trainer():
             else:
                 return self.history["accuracy"][-1]
         else:
-            print(fg(1) + "[!] Aun no se ha entrenado este modelo." + fg(15))
+            sendMSG("Aun no se ha entrenado este modelo.", is_warning=True)
 
 
     def obtenerValidationAccuracy(self, epoch=None):
@@ -283,7 +364,7 @@ class CL_Trainer():
             else:
                 return self.history["val_accuracy"][-1]
         else:
-            print(fg(1) + "[!] Aun no se ha entrenado este modelo." + fg(15))
+            sendMSG("Aun no se ha entrenado este modelo.", is_warning=True)
 
 
     def guardarGrafica(self):
@@ -331,12 +412,12 @@ class CL_Trainer():
 
         # dataset
         dataset = dynamic_dataset_loader.CLDL_b1(self.dataset_path, transform=transform)
-        print("Dataset:\n",str(dataset))
+        sendMSG("Dataset:\n" + str(dataset))
 
         # Data loader de entrenamiento y validacion
         t_number = int(len(dataset) * self.training_percent)
         v_number = len(dataset) - t_number
-        print("t_number: ", t_number, "  v_number: ", v_number)
+        sendMSG("img_entrenamiento: " + str(t_number) + "   img_validacion: " + str(v_number))
         train_set, validation_set = torch.utils.data.random_split(dataset,[t_number,v_number])
         train_loader = DataLoader(dataset=train_set,
                                   shuffle=self.shuffle,
@@ -353,7 +434,7 @@ class CL_Trainer():
 
 
 
-    def __construirRed(self, net_layer_struct, prints=False):
+    def __construirRed(self, net_layer_struct):
         """
         Funcion que construye y devuelve el modelo de la red neuronal en
         funcion de la estructura net_layer_struct dada por Parametros
@@ -363,16 +444,7 @@ class CL_Trainer():
         en custom_model.
 
         """
-
-
         model = CL_CustomModel(net_layer_struct, device)
-
-        if prints:
-            print("===================  Modelo  ===================")
-            print(model)
-            print("\n")
-            summary(model, (1,480,640))
-            print("================================================")
 
         return model
 
@@ -462,7 +534,7 @@ class CL_Trainer():
 
         # Todo lo que envueleve a donex es para poder ver los datos del dataset.
         # Poniendolo a True se quita dicha funcionalidad
-        donex = False
+        donex = True
 
         # Historial de metricas
         history = {
@@ -536,7 +608,7 @@ class CL_Trainer():
                 self.history = history
                 bar_manager.remove(train_bar)
                 self.nan_or_inf = True
-                print("\n[!] La red contiene NaN \n")
+                sendMSG("La red contiene NaN", is_warning=True)
                 break
 
 
@@ -583,8 +655,6 @@ class CL_Trainer():
 
         # Reestablecemos el modelo al modelo de la mejor epoca
         self.model = self.current_best_model
-
-        print("\n\n Se acabo el entrenamiento\n\n")
 
 
 
