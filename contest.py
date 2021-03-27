@@ -372,6 +372,7 @@ def trainRemainingTasks():
         control = trainTask()
         sendMSG("Dando un descanso a la GPU de " + str(timedelta(seconds=GPU_BREAK_TIME)) + "\n\n")
         time.sleep(GPU_BREAK_TIME)
+        i += 1
 
     # No quedan tareas por realizar
     sendMSG("Se han acabado todas las tareas con exito.")
@@ -405,6 +406,7 @@ def showRanking(num_nets_to_show = -1):
     str_ranking = __printRanking(sorted_net_list, just_return_str=True, num_nets_to_show=num_nets_to_show, str_type="tab")
 
     # Enviamos ranking al admin
+    sendMSG("Mostrando ranking de " + str(len(sorted_net_list)) + " redes:")
     sendMSG(str_ranking, dont_print=True)
 
 
