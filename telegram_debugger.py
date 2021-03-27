@@ -38,6 +38,17 @@ except:
 
 #################################  Funciones  #################################
 
+def chunkstring(string, length):
+    """
+    Trocea un String en chunks del numero de caracteres dado.
+    Si el ultimo chunk no llega a la longitud necesaria, lo devuelve
+    igualmente.
+
+    Devuelve un generados con el string troceado ordenado.
+    """
+    return (string[0+i:length+i] for i in range(0, len(string), length))
+
+
 def sendMSG(msg, is_warning = False, is_error = False, dont_print = False):
     """
     Procesa un mensaje acorde a la situacion.
@@ -48,6 +59,9 @@ def sendMSG(msg, is_warning = False, is_error = False, dont_print = False):
     Si no, solo imprime el error por pantalla.
 
     Hace auto emojize, por lo que acepta emojis.
+
+    Si el mensaje tiene mas de 4096 caracteres, lo divide en varios mensajes
+    de como mucho 4096 caracteres.
     """
     # Formateamos en funcion del tipo de mensaje
     if is_error:
@@ -66,7 +80,19 @@ def sendMSG(msg, is_warning = False, is_error = False, dont_print = False):
         admin_id_path = os.path.join(parent_folder, "telegram_admin_id")
         admin_id = open(admin_id_path, "r").read()
 
-        my_bot.sendMessage(chat_id=admin_id, text=t_msg)
+        # Troceamos el mensaje si tiene mas de 4096 chars
+        if len(t_msg) > 4096:
+            # Troceamos en cachos de 4096 o menos
+            msg_chunks = chunkstring(t_msg, 4096)
+
+            # Enviamos cada cacho
+            for chunk in msg_chunks:
+                my_bot.sendMessage(chat_id=admin_id, text=chunk)
+
+        else:
+            # Mensaje menor o igual a 4096 caracteres
+            my_bot.sendMessage(chat_id=admin_id, text=t_msg)
+
 
     # Imprimimos por pantalla
     if dont_print == False:

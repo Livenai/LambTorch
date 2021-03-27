@@ -10,6 +10,10 @@ NUM_NETWORKS = 50
 
 
 try:
+
+    # Mensaje inicial
+    contest.sendStarMSG()
+
     # Generamos las tareas
     contest.generateTasks(NUM_NETWORKS)
 

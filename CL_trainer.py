@@ -279,6 +279,9 @@ class CL_Trainer():
         self.guardarModelo()
         self.trained = True
 
+        # Enviamos las metricas finales
+        sendMSG(self.getTabuledSTR())
+
 
 
     def obtenerMetricasFinales(self):
@@ -412,7 +415,7 @@ class CL_Trainer():
 
         # dataset
         dataset = dynamic_dataset_loader.CLDL_b1(self.dataset_path, transform=transform)
-        sendMSG("Dataset:\n" + str(dataset))
+        #sendMSG("Dataset:\n" + str(dataset))
 
         # Data loader de entrenamiento y validacion
         t_number = int(len(dataset) * self.training_percent)

@@ -14,6 +14,8 @@ from hyperparams_generator import getRandomHyperParamsV1, printDict, printNetLay
 import info_handler
 import telegram_debugger
 from telegram_debugger import sendMSG
+from emoji import emojize
+
 
 
 # PARAMETROS
@@ -349,7 +351,7 @@ def trainTask():
         return 0
 
 
-    # Guardamos los resultados de la tarea en el gran json de entrenamientos
+    # Si la red no tienen NaN o Inf, guardamos los resultados
     if task.nan_or_inf == False:
         saveOneDoneTask(task)
 
@@ -362,7 +364,11 @@ def trainRemainingTasks():
     """
     # mientras queden tareas, entrenamos
     control = 0
+    i = 0
+    # Cantidad de cuadrados
+    s = 6
     while control is not None:
+        sendMSG(getHashedSquares(i,s) + "  RED  " + str(i) + "  " + getHashedSquares(i,s))
         control = trainTask()
         sendMSG("Dando un descanso a la GPU de " + str(timedelta(seconds=GPU_BREAK_TIME)) + "\n\n")
         time.sleep(GPU_BREAK_TIME)
@@ -418,3 +424,49 @@ def sendFinalMSG():
         msg += ":white_large_square:"
 
     sendMSG(msg)
+
+
+def sendStarMSG():
+    """
+    Realiza el envio de un mensaje inicial.
+    """
+    msg = ""
+
+    for i in range(6):
+        msg += ":black_square_button:"
+
+    msg += "  Inicio de entrenamiento  "
+
+    for i in range(6):
+        msg += ":black_square_button:"
+
+    sendMSG(msg)
+
+
+def getHashedSquares(hash_id, amount):
+    """
+    Devuelve una tira de cuadrados (emojis) de un color, en funcion de  hash_id.
+    Devuelve la cantidad de cuadrados dado por el parametro  amount.
+    """
+    # Creamos la lista de candidatos
+    square_list = [
+        emojize(":red_square:"),
+        emojize(":orange_square:"),
+        emojize(":yellow_square:"),
+        emojize(":green_square:"),
+        emojize(":blue_square:"),
+        emojize(":purple_square:"),
+        emojize(":brown_square:"),
+        emojize(":black_large_square:")
+    ]
+
+    # Obtenemos un candidato en funcion de  hash_id
+    selected_square = square_list[hash_id % len(square_list)]
+
+    # Repetimos el candidato la cantidad dada por  amount
+    ret = ""
+    for i in range(amount):
+        ret += selected_square
+
+    # Lo devolvemos
+    return ret
