@@ -611,6 +611,11 @@ class CL_Trainer():
                 self.history = history
                 bar_manager.remove(train_bar)
                 self.nan_or_inf = True
+                # Guardamos las stats de NaN
+                self.net_train_loss = float("NaN")
+                self.net_train_accuracy = float("NaN")
+                self.net_val_loss = float("NaN")
+                self.net_val_accuracy = float("NaN")
                 sendMSG("La red contiene NaN", is_warning=True)
                 break
 
