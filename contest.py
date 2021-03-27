@@ -15,6 +15,7 @@ import info_handler
 import telegram_debugger
 from telegram_debugger import sendMSG
 from emoji import emojize
+import traceback
 
 
 
@@ -348,6 +349,8 @@ def trainTask():
         trainNetPool([task])
     except:
         sendMSG("La red no cabe en la GPU. Descartando...", is_warning=True)
+        sendMSG(traceback.format_exc(), is_error=True)
+
         return 0
 
 
