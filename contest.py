@@ -261,6 +261,9 @@ def readOneTask():
     # Cargamos el gran json de tareas
     big_task_json = info_handler.loadTheBigTaskJson()
 
+    # Informamos de la cantidad de tareas que quedan
+    sendMSG("Quedan  " + str(len(big_task_json)) + "  tareas por hacer.")
+
     # Comprobamos si quedan tareas para devolver
     if len(big_task_json) > 0:
         # Seleccionamos una tarea
