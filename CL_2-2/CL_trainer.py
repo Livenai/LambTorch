@@ -474,8 +474,6 @@ class CL_Trainer():
     def __checkAccuracy(self, loader, model, history=None, loss_fn=None):
         """ Funcion para evaluar el modelo con los datos que ofrezca el loader """
 
-        num_correct = 0
-        num_samples = 0
         model.eval()
         val_loss_list = []
 
@@ -573,10 +571,6 @@ class CL_Trainer():
 
                 # Sacamos las predicciones
                 outputs = model(imgs)
-                predictions = torch.tensor([1.0 if i >= 0.5 else 0.0 for i in outputs]).to(device)
-                num_correct += (predictions == labels).sum()
-                num_samples += predictions.size(0)
-
 
                 # Obtenemos el error
                 loss = loss_fn(outputs, labels)
@@ -595,7 +589,7 @@ class CL_Trainer():
 
             # Guardamos las metricas de la epoca
             history["loss"].append(np.mean(ent_loss_list))
-            history["accuracy"].append(float(num_correct)/float(num_samples))
+            history["accuracy"].append(np.mean(ent_loss_list) * self.manual_label_normalize)
 
 
             # Comprobamos si hay NaN o Inf en las metricas
@@ -681,7 +675,7 @@ class CL_Trainer():
             os.makedirs(self.plots_path)
 
         plot_name_and_path = os.path.join(self.plots_path, self.model_name)
-        show_plot_and_save(self.history, just_save=True, save_name=plot_name_and_path)
+        show_plot_and_save(self.history,regression=True, just_save=True, save_name=plot_name_and_path)
 
 
     def loadFromJson(self, json_data):

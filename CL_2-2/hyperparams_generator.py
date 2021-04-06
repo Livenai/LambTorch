@@ -29,13 +29,13 @@ def getRandomHyperParamsV1():
     capas.
     """
     # Construimos los hiperparametros aleatorios
-    lr = randint(0,101) * 1e-6
-    ep = randint(5,21)
+    lr = randint(1,101) * 1e-6
+    ep = randint(5,41)
     tp = round((rand()*0.4)+0.5, 2)
     hyperparams = {
-            "learning_rate": lr, # Float en el rango [0,100] e-6
+            "learning_rate": lr, # Float en el rango [1,100] e-6
             "batch_size": 1,
-            "epochs": ep, # Int en el rango [5,20]
+            "epochs": ep, # Int en el rango [5,40]
             "training_percent": tp, # Float en el rango [0.5, 0.9]
             "model_name": None # mas tarde se le pone el HasCode de los hyperparametros
     }
