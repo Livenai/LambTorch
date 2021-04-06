@@ -146,6 +146,7 @@ class CL_Trainer():
         now = str(datetime.now())
         self.creation_date = now[:now.rfind(".")]
         self.last_modification_date = self.creation_date
+        self.manual_label_normalize = 35.0 # valor maximo de las labels, para normalizar
 
         # Aux para el early stopping
         self.best_test_loss = 999999999
@@ -160,7 +161,7 @@ class CL_Trainer():
 
         Solo colorea el String si printColor y resetColor son un color.
         """
-        NUM_DECIMALS = 2
+        NUM_DECIMALS = 3
 
         name_color = ""
 
@@ -176,9 +177,9 @@ class CL_Trainer():
             ret += "num_params: " + self.printColor + str(self.num_params) + self.resetColor
             # Metricas
             ret += "  t_l: " + self.printColor + str(round(self.obtenerTrainLoss(), NUM_DECIMALS)) + self.resetColor
-            ret += "  t_acc: " + self.printColor + str(round(self.obtenerTrainAccuracy()*100, NUM_DECIMALS)) + self.resetColor + "%"
+            ret += "  t_err_mean: " + self.printColor + str(round(self.obtenerTrainAccuracy(), NUM_DECIMALS)) + self.resetColor + " Kg"
             ret += "  val_l: " + self.printColor + str(round(self.obtenerValidationLoss(), NUM_DECIMALS)) + self.resetColor
-            ret += "  val_acc: " + self.printColor + str(round(self.obtenerValidationAccuracy()*100, NUM_DECIMALS)) + self.resetColor + "%"
+            ret += "  val_err_mean: " + self.printColor + str(round(self.obtenerValidationAccuracy(), NUM_DECIMALS)) + self.resetColor + " Kg"
         else:
             ret += self.printColor + "Not trained" + self.resetColor
 
@@ -194,7 +195,7 @@ class CL_Trainer():
 
         Solo colorea el String si printColor y resetColor son un color.
         """
-        NUM_DECIMALS = 2
+        NUM_DECIMALS = 3
 
         name_color = ""
 
@@ -209,9 +210,9 @@ class CL_Trainer():
             ret += "\n\nnum_params: " + self.printColor + str(self.num_params) + self.resetColor
             # Metricas
             ret += "\n\tt_l: " + self.printColor + str(round(self.obtenerTrainLoss(), NUM_DECIMALS)) + self.resetColor
-            ret += "\n\t\tt_acc: " + self.printColor + str(round(self.obtenerTrainAccuracy()*100, NUM_DECIMALS)) + self.resetColor + "%"
+            ret += "\n\t\tt_err_mean: " + self.printColor + str(round(self.obtenerTrainAccuracy(), NUM_DECIMALS)) + self.resetColor + " Kg"
             ret += "\n\t\t\tval_l: " + self.printColor + str(round(self.obtenerValidationLoss(), NUM_DECIMALS)) + self.resetColor
-            ret += "\n\t\t\t\tval_acc: " + self.printColor + str(round(self.obtenerValidationAccuracy()*100, NUM_DECIMALS)) + self.resetColor + "%"
+            ret += "\n\t\t\t\tval_err_mean: " + self.printColor + str(round(self.obtenerValidationAccuracy(), NUM_DECIMALS)) + self.resetColor + " Kg"
         else:
             ret += self.printColor + "Not trained" + self.resetColor
 
@@ -243,9 +244,9 @@ class CL_Trainer():
             ret += "\nnum_params: " + self.printColor + str(self.num_params) + self.resetColor
             # Metricas
             ret += "\n\tt_l: " + self.printColor + str(round(self.obtenerTrainLoss(), NUM_DECIMALS)) + self.resetColor
-            ret += "\n\t\tt_acc: " + self.printColor + str(round(self.obtenerTrainAccuracy()*100, NUM_DECIMALS)) + self.resetColor + "%"
+            ret += "\n\t\tt_acc: " + self.printColor + str(round(self.obtenerTrainAccuracy()*100, NUM_DECIMALS)) + self.resetColor + " Kg"
             ret += "\n\t\t\tval_l: " + self.printColor + str(round(self.obtenerValidationLoss(), NUM_DECIMALS)) + self.resetColor
-            ret += "\n\t\t\t\tval_acc: " + self.printColor + str(round(self.obtenerValidationAccuracy()*100, NUM_DECIMALS)) + self.resetColor + "%"
+            ret += "\n\t\t\t\tval_acc: " + self.printColor + str(round(self.obtenerValidationAccuracy()*100, NUM_DECIMALS)) + self.resetColor + " Kg"
         else:
             ret += self.printColor + "Not trained" + self.resetColor
 
@@ -415,7 +416,7 @@ class CL_Trainer():
 
 
         # dataset (normalizamos las etiquetas entre 0 y 35 para los pesos
-        dataset = dynamic_dataset_loader.CLDL_r1(self.dataset_path, img_transform=img_transform, manual_label_normalize= 35.0)
+        dataset = dynamic_dataset_loader.CLDL_r1(self.dataset_path, img_transform=img_transform, manual_label_normalize= self.manual_label_normalize)
         #sendMSG("Dataset:\n" + str(dataset))
 
         # Data loader de entrenamiento y validacion
@@ -485,9 +486,6 @@ class CL_Trainer():
                 y = y.to(device=device).float()
 
                 scores = model(x)
-                predictions = torch.tensor([1.0 if i >= 0.5 else 0.0 for i in scores]).to(device)
-                num_correct += (predictions == y).sum()
-                num_samples += predictions.size(0)
 
                 if (history is not None) and (loss_fn is not None):
                     val_loss_list.append(loss_fn(scores, y).item())
@@ -495,14 +493,10 @@ class CL_Trainer():
         if (history is not None) and (loss_fn is not None):
             val_loss = np.mean(val_loss_list)
             history["val_loss"].append(val_loss)
-            history["val_accuracy"].append(float(num_correct)/float(num_samples))
+            history["val_accuracy"].append(float(val_loss * self.manual_label_normalize))
 
-
-
-        #print(f"- Val_acc test:  {num_correct} / {num_samples} imgs correctamente predichas ({float(num_correct)/float(num_samples)*100:.2f} %)")
         model.train()
-
-        return f"{float(num_correct)/float(num_samples)*100:.2f}"
+        return float(val_loss * self.manual_label_normalize)
 
 
 
@@ -538,7 +532,7 @@ class CL_Trainer():
 
         # Todo lo que envueleve a donex es para poder ver los datos del dataset.
         # Poniendolo a True se quita dicha funcionalidad
-        donex = False
+        donex = True
 
         # Historial de metricas
         history = {
@@ -626,7 +620,7 @@ class CL_Trainer():
             self.__resetAcumLoss()
 
             # Tick de la barra de epocas
-            prefix_epochs_bar = "Epochs:  val_acc= "+str(self.__checkAccuracy(validation_loader, model, history, loss_fn))+"% "
+            prefix_epochs_bar = "Epochs:  val_acc= "+str(round(self.__checkAccuracy(validation_loader, model, history, loss_fn), 4))+" Kg "
             epochs_bar.desc = prefix_epochs_bar
             epochs_bar.update()
 
@@ -651,9 +645,10 @@ class CL_Trainer():
 
             # Mostramos las metricas
             colors = ["#ff6163", "#ff964f", "#20c073", "#b1ff65"]
+            names = ["loss", "val_loss", "err_mean", "val_err_mean"]
             print("e " + str(epoch) + ":\t ", end="")
             for i, key in enumerate(history):
-                print(str(key) + ": " + fg(colors[i]) + str(round(history[key][epoch], 4)) + self.B + "  ", end="")
+                print(names[i] + ": " + fg(colors[i]) + str(round(history[key][epoch], 4)) + self.B + "  ", end="")
             print()
 
             # Guardamos el historial de metricas
