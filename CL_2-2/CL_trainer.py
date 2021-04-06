@@ -126,7 +126,7 @@ class CL_Trainer():
         # PATH
         self.parent_folder = os.path.abspath(os.path.dirname(__file__))
         self.train_data_path = os.path.join(self.parent_folder, "train_data")
-        self.dataset_path = os.path.join(self.parent_folder, "clasiLamb_2-2_CUS_5-imgs")
+        self.dataset_path = os.path.join(self.parent_folder, "clasiLamb_2-2_CUS")
         self.saved_models_path = os.path.join(self.train_data_path, "saved_models")
         self.plots_path = os.path.join(self.train_data_path, "plots")
 
