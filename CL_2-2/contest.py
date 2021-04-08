@@ -20,7 +20,7 @@ import traceback
 
 
 # PARAMETROS
-GPU_BREAK_TIME = 2# 5 * 60 # 5 mins de descanso entre entrenamientos
+GPU_BREAK_TIME = 5 * 60 # 5 mins de descanso entre entrenamientos
 
 
 def CtrlC_signal_handler(sig, frame):
@@ -325,6 +325,14 @@ def generateTasks(num_tasks):
     # Guardamos el gran json con las nuevas tareas acumuladas
     info_handler.saveTheBigTaskJson(big_task_json)
 
+    # Enviamos mensaje de aviso
+    if num_tasks == 1:
+        sendMSG("Añadiendo 1 tarea al gran json")
+    else:
+        sendMSG("Añadiendo " + str(num_tasks) + " tareas al gran json")
+
+
+
 
 def trainTask():
     """
@@ -334,7 +342,7 @@ def trainTask():
     Si no quedan tareas por hacer, lanza un mensaje
     de advertencia y devuelve None.
 
-    Devuelve 0 en otro caso.
+    Si la red tiene NaN o Inf, devuelve 1. Devuelve 0 en otro caso.
 
     Si no se puede entrenar la red por que no cabe en la gpu, envia un mensaje
     y termina. Descarta la red.
@@ -360,8 +368,9 @@ def trainTask():
     # Si la red no tienen NaN o Inf, guardamos los resultados
     if task.nan_or_inf == False:
         saveOneDoneTask(task)
-
-    return 0
+        return 0
+    else:
+        return 1
 
 
 def trainRemainingTasks():
@@ -376,9 +385,15 @@ def trainRemainingTasks():
     while control is not None:
         sendMSG(getHashedSquares(i,s) + "  RED  " + str(i) + "  " + getHashedSquares(i,s))
         control = trainTask()
-        sendMSG("Dando un descanso a la GPU de " + str(timedelta(seconds=GPU_BREAK_TIME)) + "\n\n")
-        time.sleep(GPU_BREAK_TIME)
-        i += 1
+
+        # Si la red no tiene NaN
+        if control == 0:
+            sendMSG("Dando un descanso a la GPU de " + str(timedelta(seconds=GPU_BREAK_TIME)) + "\n\n")
+            time.sleep(GPU_BREAK_TIME)
+            i += 1
+        elif control == 1:
+            # Una tarea ha sido NaN, por lo que creamos una nueva para compensar
+            generateTasks(1)
 
     # No quedan tareas por realizar
     sendMSG("Se han acabado todas las tareas con exito.")
