@@ -161,7 +161,7 @@ class CL_Trainer():
 
         Solo colorea el String si printColor y resetColor son un color.
         """
-        NUM_DECIMALS = 3
+        NUM_DECIMALS = 4
 
         name_color = ""
 
@@ -195,7 +195,7 @@ class CL_Trainer():
 
         Solo colorea el String si printColor y resetColor son un color.
         """
-        NUM_DECIMALS = 3
+        NUM_DECIMALS = 4
 
         name_color = ""
 
