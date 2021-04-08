@@ -136,6 +136,7 @@ class CL_Trainer():
         self.net_train_accuracy = None
         self.net_val_loss = None
         self.net_val_accuracy = None
+        self.std_dev = None
         self.loss_hist = np.array([]) # Uso temporal
         self.history = {}
         self.trained = False
@@ -146,7 +147,7 @@ class CL_Trainer():
         now = str(datetime.now())
         self.creation_date = now[:now.rfind(".")]
         self.last_modification_date = self.creation_date
-        self.manual_label_normalize = 35.0 # valor maximo de las labels, para normalizar
+        self.manual_label_normalize = None # valor maximo de las labels, para normalizar. None si no normalizamos
 
         # Aux para el early stopping
         self.best_test_loss = 999999999
@@ -180,6 +181,7 @@ class CL_Trainer():
             ret += "  t_err_mean: " + self.printColor + str(round(self.obtenerTrainAccuracy(), NUM_DECIMALS)) + self.resetColor + " Kg"
             ret += "  val_l: " + self.printColor + str(round(self.obtenerValidationLoss(), NUM_DECIMALS)) + self.resetColor
             ret += "  val_err_mean: " + self.printColor + str(round(self.obtenerValidationAccuracy(), NUM_DECIMALS)) + self.resetColor + " Kg"
+            ret += "  val_std_dev: ±" + self.printColor + str(round(self.std_dev, 2)) + self.resetColor + " Kg"
         else:
             ret += self.printColor + "Not trained" + self.resetColor
 
@@ -213,6 +215,7 @@ class CL_Trainer():
             ret += "\n\t\tt_err_mean: " + self.printColor + str(round(self.obtenerTrainAccuracy(), NUM_DECIMALS)) + self.resetColor + " Kg"
             ret += "\n\t\t\tval_l: " + self.printColor + str(round(self.obtenerValidationLoss(), NUM_DECIMALS)) + self.resetColor
             ret += "\n\t\t\t\tval_err_mean: " + self.printColor + str(round(self.obtenerValidationAccuracy(), NUM_DECIMALS)) + self.resetColor + " Kg"
+            ret += "\n\t\t\t\t\tval_std_dev: ±" + self.printColor + str(round(self.std_dev, 2)) + self.resetColor + " Kg"
         else:
             ret += self.printColor + "Not trained" + self.resetColor
 
@@ -490,11 +493,19 @@ class CL_Trainer():
 
         if (history is not None) and (loss_fn is not None):
             val_loss = np.mean(val_loss_list)
+            std_dev_loss = np.std(val_loss_list)
             history["val_loss"].append(val_loss)
-            history["val_accuracy"].append(float(val_loss * self.manual_label_normalize))
+            if self.manual_label_normalize is None:
+                history["val_accuracy"].append(float(val_loss))
+            else:
+                history["val_accuracy"].append(float(val_loss * self.manual_label_normalize))
+
 
         model.train()
-        return float(val_loss * self.manual_label_normalize)
+        if self.manual_label_normalize is None:
+            return float(val_loss)
+        else:
+            return float(val_loss * self.manual_label_normalize)
 
 
 
@@ -589,7 +600,10 @@ class CL_Trainer():
 
             # Guardamos las metricas de la epoca
             history["loss"].append(np.mean(ent_loss_list))
-            history["accuracy"].append(np.mean(ent_loss_list) * self.manual_label_normalize)
+            if self.manual_label_normalize is None:
+                history["accuracy"].append(np.mean(ent_loss_list))
+            else:
+                history["accuracy"].append(np.mean(ent_loss_list) * self.manual_label_normalize)
 
 
             # Comprobamos si hay NaN o Inf en las metricas
@@ -614,7 +628,8 @@ class CL_Trainer():
             self.__resetAcumLoss()
 
             # Tick de la barra de epocas
-            prefix_epochs_bar = "Epochs:  val_acc= "+str(round(self.__checkAccuracy(validation_loader, model, history, loss_fn), 4))+" Kg "
+            mean_loss, std_dev_loss = self.__checkAccuracy(validation_loader, model, history, loss_fn)
+            prefix_epochs_bar = "Epochs:  val_acc= "+str(round(mean_loss, 4))+" Kg "
             epochs_bar.desc = prefix_epochs_bar
             epochs_bar.update()
 
@@ -635,6 +650,7 @@ class CL_Trainer():
 
                 # Actualizamos el mejor loss
                 self.best_test_loss = test_loss
+                self.std_dev = std_dev_loss
 
 
             # Mostramos las metricas
@@ -704,6 +720,11 @@ class CL_Trainer():
             self.net_train_accuracy = json_data["net_train_accuracy"]
             self.net_val_loss = json_data["net_val_loss"]
             self.net_val_accuracy = json_data["net_val_accuracy"]
+            # Propiedades nuevas a guardar
+            try:
+                self.std_dev = json_data["std_dev"]
+            except:
+                self.std_dev = -1
 
         else:
             # Cargamos los atributos para el entrenamiento
