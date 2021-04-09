@@ -619,6 +619,7 @@ class CL_Trainer():
                 self.net_train_accuracy = float("NaN")
                 self.net_val_loss = float("NaN")
                 self.net_val_accuracy = float("NaN")
+                self.std_dev = float("NaN")
                 sendMSG("La red contiene NaN", is_warning=True)
                 break
 
