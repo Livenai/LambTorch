@@ -148,7 +148,7 @@ def CL_trainer2json(trainer):
         ret["net_train_accuracy"] = trainer.net_train_accuracy
         ret["net_val_loss"] = trainer.net_val_loss
         ret["net_val_accuracy"] = trainer.net_val_accuracy
-        ret["std_dev"] = self.std_dev
+        ret["std_dev"] = trainer.std_dev
 
 
         now = str(datetime.now())
