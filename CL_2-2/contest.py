@@ -167,7 +167,7 @@ def __printRanking(net_list, just_return_str=False, num_nets_to_show=-1, colored
 
 def createRandomNetPool(pool_size):
     """
-    Crea un conjunto de redes inicializadas aleatoriamente y las devueve en
+    Crea un conjunto de redes inicializadas aleatoriamente y las devuelve en
     una lista.
     """
     ret = []
