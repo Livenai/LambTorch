@@ -147,7 +147,7 @@ class CL_Trainer():
         now = str(datetime.now())
         self.creation_date = now[:now.rfind(".")]
         self.last_modification_date = self.creation_date
-        self.manual_label_normalize = None # valor maximo de las labels, para normalizar. None si no normalizamos
+        self.manual_label_normalize = 35.0 # valor maximo de las labels, para normalizar. None si no normalizamos
 
         # Aux para el early stopping
         self.best_test_loss = 999999999
