@@ -6,7 +6,7 @@ import traceback
 
 # PARAMETROS
 
-NUM_NETWORKS = 10
+NUM_NETWORKS = 5
 
 
 try:
