@@ -503,9 +503,9 @@ class CL_Trainer():
 
         model.train()
         if self.manual_label_normalize is None:
-            return float(val_loss), std_dev_loss
+            return val_loss, std_dev_loss
         else:
-            return float(val_loss * self.manual_label_normalize), std_dev_loss
+            return (val_loss * self.manual_label_normalize), (std_dev_loss * self.manual_label_normalize)
 
 
 
