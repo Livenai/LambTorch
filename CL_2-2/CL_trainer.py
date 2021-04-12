@@ -633,7 +633,7 @@ class CL_Trainer():
             self.__resetAcumLoss()
 
             # Tick de la barra de epocas
-            mean_loss, std_dev_loss = self.__checkAccuracy(validation_loader, model, history, loss_fn)
+            mean_loss, std_dev_loss = self.__checkAccuracy(validation_loader, model, history, torch.nn.L1Loss())
             prefix_epochs_bar = "Epochs:  val_acc= "+str(round(mean_loss, 4))+" Kg "
             epochs_bar.desc = prefix_epochs_bar
             epochs_bar.update()

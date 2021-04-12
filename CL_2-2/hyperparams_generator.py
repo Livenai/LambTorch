@@ -59,13 +59,13 @@ def getRandomHyperParamsV1():
 
     # Creacion de la ultima capa y su transformacion
     net_layers.append({"layer_type": "Linear", "in_features": out_linear_features, "out_features": 1})
-    #net_layers.append({"layer_type": "Sigmoid"})
+    net_layers.append({"layer_type": "ReLU"})
 
 
     # Obtenemos el hash code y lo ponemos en el nombre
     ret_pair = (hyperparams, net_layers)
     hash_code = getHashCode(ret_pair)
-    hyperparams["model_name"] = "RandModel-LN_" + hash_code
+    hyperparams["model_name"] = "RandModel-ReLU-N_" + hash_code
 
 
     return ret_pair
