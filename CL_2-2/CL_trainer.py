@@ -541,7 +541,7 @@ class CL_Trainer():
 
         # Todo lo que envueleve a donex es para poder ver los datos del dataset.
         # Poniendolo a True se quita dicha funcionalidad
-        donex = False
+        donex = True
 
         # Historial de metricas
         history = {
@@ -582,13 +582,10 @@ class CL_Trainer():
 
                 # Sacamos las predicciones
                 outputs = model(imgs)
-                print("------  outputs: " + str(outputs))
-                print("------  labels: "  +  str(labels))
 
                 # Obtenemos el error
                 loss = loss_fn(outputs, labels)
                 ent_loss_list.append(loss.item())
-                print("------  loss: "  +  str(loss.item()))
 
 
                 # Back-propagation y entrenamiento
