@@ -582,12 +582,14 @@ class CL_Trainer():
 
                 # Sacamos las predicciones
                 outputs = model(imgs)
-                print("------  outputs: " + outputs)
-                print("------  labels: "  +  labels)
+                print("------  outputs: " + str(outputs))
+                print("------  labels: "  +  str(labels))
 
                 # Obtenemos el error
                 loss = loss_fn(outputs, labels)
                 ent_loss_list.append(loss.item())
+                print("------  loss: "  +  str(loss.item()))
+
 
                 # Back-propagation y entrenamiento
                 optimizer.zero_grad()
