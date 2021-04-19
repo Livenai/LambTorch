@@ -20,7 +20,7 @@ import traceback
 
 
 # PARAMETROS
-GPU_BREAK_TIME = 5 * 60 # 5 mins de descanso entre entrenamientos
+GPU_BREAK_TIME = 1 # 5 * 60 # 5 mins de descanso entre entrenamientos
 
 
 def CtrlC_signal_handler(sig, frame):
@@ -45,7 +45,7 @@ def evaluate_net(net):
     if net.nan_or_inf:
         return 99999999
     else:
-        return net.obtenerValidationLoss()
+        return net.obtenerValidationAccuracy()
 
 
 def __printRanking(net_list, just_return_str=False, num_nets_to_show=-1, colored_text=False, str_type="classic"):
@@ -358,9 +358,13 @@ def trainTask():
     # Entrenamos la tarea
     try:
         trainNetPool([task])
-    except:
-        sendMSG("La red no cabe en la GPU. Descartando...", is_warning=True)
+    except RuntimeError as e:
+        sendMSG("La red no cabe en la GPU. Descartando por otra...", is_warning=True)
         sendMSG(traceback.format_exc(), is_error=True)
+        generateTasks(1)
+    except:
+        sendMSG(traceback.format_exc(), is_error=True)
+
 
         return 0
 

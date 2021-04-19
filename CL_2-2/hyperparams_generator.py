@@ -29,14 +29,14 @@ def getRandomHyperParamsV1():
     capas.
     """
     # Construimos los hiperparametros aleatorios
-    lr = randint(1,101) * 1e-6
-    ep = randint(5,41)
-    tp = round((rand()*0.4)+0.5, 2)
+    lr = randint(1,100001) * 1e-7
+    ep = randint(10,51)
+    tp = round((rand()*0.2)+0.7, 3)
     hyperparams = {
-            "learning_rate": lr, # Float en el rango [1,100] e-6
+            "learning_rate": lr, # Float en el rango [1,100000] e-7
             "batch_size": 1,
-            "epochs": ep, # Int en el rango [5,40]
-            "training_percent": tp, # Float en el rango [0.5, 0.9]
+            "epochs": ep, # Int en el rango [10,50]
+            "training_percent": tp, # Float en el rango [0.7, 0.9]
             "model_name": None # mas tarde se le pone el HasCode de los hyperparametros
     }
 
@@ -59,13 +59,13 @@ def getRandomHyperParamsV1():
 
     # Creacion de la ultima capa y su transformacion
     net_layers.append({"layer_type": "Linear", "in_features": out_linear_features, "out_features": 1})
-    net_layers.append({"layer_type": "ReLU"})
+    #net_layers.append({"layer_type": "ReLU"})
 
 
     # Obtenemos el hash code y lo ponemos en el nombre
     ret_pair = (hyperparams, net_layers)
     hash_code = getHashCode(ret_pair)
-    hyperparams["model_name"] = "RandModel-ReLU_" + hash_code
+    hyperparams["model_name"] = "RandModel-Linear_N_" + hash_code
 
 
     return ret_pair
@@ -94,38 +94,45 @@ def getRandomConvSet(in_features):
     convSet_list = []
     to_transform_img_dims = np.array(IMG_SIZE)
 
-    # Encadenamos pares aleatorios de 1 a 8 veces
-    for i in range(randint(1,9)):
-        # Generamos el nuevo par y lo añadimos a la lista
-        new_pair = getRandomConvPair(in_features)
-        convSet_list.extend(new_pair)
+    # Encadenamos packs aleatorios de 1 a 6 veces
+    for i in range(randint(1,7)):
+        # Generamos el nuevo pack y lo añadimos a la lista
+        new_pack = getRandomConvPack(in_features)
+        convSet_list.extend(new_pack)
 
         # Aplicamos la transformacion a las dimensiones de la imagen
-        #print("dims: ", to_transform_img_dims)
-        to_transform_img_dims = to_transform_img_dims - (new_pair[0]["kernel_size"]-1)
-        #print("-: ", to_transform_img_dims)
+        last_conv_out_features = None
+        for pack_layer in new_pack:
+            if pack_layer["layer_type"] == "Conv2d":
+                to_transform_img_dims = to_transform_img_dims - (pack_layer["kernel_size"]-1)
+                last_conv_out_features = pack_layer["out_channels"]
+            else:
+                to_transform_img_dims = (to_transform_img_dims / pack_layer["kernel_size"]).astype(np.int32)
 
-        to_transform_img_dims = (to_transform_img_dims / new_pair[1]["kernel_size"]).astype(np.int32)
-        #print("/: ", to_transform_img_dims)
+            print(to_transform_img_dims)
 
 
         # Obtenemos las out_features del par, las cuales seran las nuevas in_features
-        in_features = new_pair[0]["out_channels"]
+        in_features = last_conv_out_features
 
-    # Comprobamos que no son demasiadas reduccones de la imagen
+    # Comprobamos que no son demasiadas reducciones de la imagen
     if (to_transform_img_dims[0] <= 0) or (to_transform_img_dims[1] <= 0):
         out_features = None
     else:
         out_features = int(to_transform_img_dims[0] * to_transform_img_dims[1] * in_features)
 
+    print("-------")
+    for a in convSet_list:
+        print(a)
+    print("-------------------------")
     # Devolvemos
     return convSet_list, out_features
 
 
-def getRandomConvPair(in_features):
+def getRandomConvPack(in_features):
     """
-    Crea dos capas, una de ellas convolucional y la otra de pooling de forma
-    aleatoria.
+    Crea un conjunto de 1-3 capas convolucionales mas una ultima capa
+    de pooling.
 
     Parametros aleatorios y aleatoriedad en el tipo de capa de pooling:
 
@@ -135,12 +142,18 @@ def getRandomConvPair(in_features):
 
     Kernel de pooling aleatorio entre 2 y 8
     """
-    # Creamos la capa convolucional
-    conv_layer = getRandomConv2D(in_features)
+    ret = []
+    aux_out = in_features
+    # Creamos las capas convolucionales
+    for i in range(randint(1, 4)):
+        conv_layer = getRandomConv2D(aux_out)
+        ret.append(conv_layer)
+        aux_out = conv_layer["out_channels"]
+
     # Creamos la capa de pooling
-    pool_layer = getRandomPool2D()
+    ret.append(getRandomPool2D())
     # Devolvemos
-    return [conv_layer, pool_layer]
+    return ret
 
 
 def getRandomConv2D(in_features):
@@ -149,7 +162,7 @@ def getRandomConv2D(in_features):
     """
     # Random
     out_features = randint(1, 100)
-    kernel_rand = int(choice([3,5,7])) # Evitamos los numpy.int64
+    kernel_rand = int(choice([3,5,7,9,11])) # Evitamos los numpy.int64
 
     # Creamos el dict y lo devolvemos
     return {"layer_type": "Conv2d", "in_channels": in_features, "out_channels": out_features, "kernel_size": kernel_rand}
@@ -168,13 +181,13 @@ def getRandomPool2D():
     choice_num = randint(0,3)
     if choice_num == 0:
         # Creamos una capa MaxPool2d
-        return {"layer_type": "MaxPool2d", "kernel_size": randint(2,9)}
+        return {"layer_type": "MaxPool2d", "kernel_size": randint(2,4)}
     elif choice_num == 1:
         # Creamos una capa AvgPool2d
-        return {"layer_type": "AvgPool2d", "kernel_size": randint(2,9)}
+        return {"layer_type": "AvgPool2d", "kernel_size": randint(2,4)}
     elif choice_num == 2:
         # Creamos una capa LPPool2d
-        return {"layer_type": "LPPool2d", "norm_type": randint(1, 100), "kernel_size": randint(2,9)}
+        return {"layer_type": "LPPool2d", "norm_type": randint(1, 100), "kernel_size": randint(2,4)}
 
 
 
