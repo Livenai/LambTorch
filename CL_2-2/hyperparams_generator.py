@@ -109,7 +109,6 @@ def getRandomConvSet(in_features):
             else:
                 to_transform_img_dims = (to_transform_img_dims / pack_layer["kernel_size"]).astype(np.int32)
 
-            print(to_transform_img_dims)
 
 
         # Obtenemos las out_features del par, las cuales seran las nuevas in_features
@@ -121,10 +120,6 @@ def getRandomConvSet(in_features):
     else:
         out_features = int(to_transform_img_dims[0] * to_transform_img_dims[1] * in_features)
 
-    print("-------")
-    for a in convSet_list:
-        print(a)
-    print("-------------------------")
     # Devolvemos
     return convSet_list, out_features
 

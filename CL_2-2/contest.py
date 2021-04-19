@@ -441,16 +441,22 @@ def sendFinalMSG():
     ha finalizado correctamente.
     """
     msg = ""
+    prepost = ""
 
     for i in range(6):
         msg += ":white_large_square:"
+        prepost += ":white_large_square::white_large_square::white_large_square:"
 
     msg += "  Ejecucion terminada  "
 
     for i in range(6):
         msg += ":white_large_square:"
+        prepost += ":white_large_square::white_large_square::white_large_square:"
 
+    sendMSG(prepost)
     sendMSG(msg)
+    sendMSG(prepost)
+
 
 
 def sendStarMSG():
@@ -458,16 +464,22 @@ def sendStarMSG():
     Realiza el envio de un mensaje inicial.
     """
     msg = ""
+    prepost = ""
 
     for i in range(6):
         msg += ":black_square_button:"
+        prepost += ":black_square_button::black_square_button::black_square_button:"
 
     msg += "  Inicio de entrenamiento  "
 
     for i in range(6):
         msg += ":black_square_button:"
+        prepost += ":black_square_button::black_square_button::black_square_button:"
 
+    sendMSG(prepost)
     sendMSG(msg)
+    sendMSG(prepost)
+
 
 
 def getHashedSquares(hash_id, amount):
