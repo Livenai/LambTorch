@@ -15,7 +15,7 @@ try:
     contest.sendStarMSG()
 
     # Generamos las tareas
-    contest.generateTasks(NUM_NETWORKS)
+    #contest.generateTasks(NUM_NETWORKS)
 
     # Iniciamos el entrenamiento de las tareas
     contest.trainRemainingTasks()

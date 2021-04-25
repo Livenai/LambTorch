@@ -42,10 +42,11 @@ def evaluate_net(net):
     Devuelve como puntuacion el val_accuracy, a no ser que la red
     tenga NaN o Inf, en cuyo caso devuelve una puntuacion muy penalizada.
     """
-    if net.nan_or_inf:
+    cand = net.obtenerValidationAccuracy()
+    if net.nan_or_inf or cand == None:
         return 99999999
     else:
-        return net.obtenerValidationAccuracy()
+        return cand
 
 
 def __printRanking(net_list, just_return_str=False, num_nets_to_show=-1, colored_text=False, str_type="classic"):
