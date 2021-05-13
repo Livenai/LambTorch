@@ -65,6 +65,7 @@ from plot import show_plot_and_save
 from custom_model import CL_CustomModel
 import telegram_debugger
 from telegram_debugger import sendMSG
+from ponderation_cfg import *
 
 
 
@@ -136,6 +137,9 @@ class CL_Trainer():
         self.net_train_accuracy = None
         self.net_val_loss = None
         self.net_val_accuracy = None
+        self.net_false_positives = None
+        self.net_false_negatives = None
+
         self.loss_hist = np.array([]) # Uso temporal
         self.history = {}
         self.trained = False
@@ -179,6 +183,9 @@ class CL_Trainer():
             ret += "  t_acc: " + self.printColor + str(round(self.obtenerTrainAccuracy()*100, NUM_DECIMALS)) + self.resetColor + "%"
             ret += "  val_l: " + self.printColor + str(round(self.obtenerValidationLoss(), NUM_DECIMALS)) + self.resetColor
             ret += "  val_acc: " + self.printColor + str(round(self.obtenerValidationAccuracy()*100, NUM_DECIMALS)) + self.resetColor + "%"
+            ret += "  fp: " + self.printColor + str(self.obtenerFalsePositives()) + self.resetColor
+            ret += "  fn: " + self.printColor + str(self.obtenerFalseNegatives()) + self.resetColor
+
         else:
             ret += self.printColor + "Not trained" + self.resetColor
 
@@ -212,6 +219,8 @@ class CL_Trainer():
             ret += "\n\t\tt_acc: " + self.printColor + str(round(self.obtenerTrainAccuracy()*100, NUM_DECIMALS)) + self.resetColor + "%"
             ret += "\n\t\t\tval_l: " + self.printColor + str(round(self.obtenerValidationLoss(), NUM_DECIMALS)) + self.resetColor
             ret += "\n\t\t\t\tval_acc: " + self.printColor + str(round(self.obtenerValidationAccuracy()*100, NUM_DECIMALS)) + self.resetColor + "%"
+            ret += "\n\t\t\t\t\tfp: " + self.printColor + str(self.obtenerFalsePositives()) + self.resetColor
+            ret += "\n\t\t\t\t\t\tfn: " + self.printColor + str(self.obtenerFalseNegatives()) + self.resetColor
         else:
             ret += self.printColor + "Not trained" + self.resetColor
 
@@ -294,7 +303,9 @@ class CL_Trainer():
                        "loss": [],
                        "val_loss": [],
                        "accuracy": [],
-                       "val_accuracy": []
+                       "val_accuracy": [],
+                       "false_positiver": [],
+                       "false_negatives": []
                     }
 
         Donde cada lista contiene valores ordenados por
@@ -310,14 +321,14 @@ class CL_Trainer():
         """
         Devuelve el Train Loss de una epoca.
 
-        Si  no se especifica ningun valor, devuelve el Train Loss definitivo
+        Si no se especifica ningun valor, devuelve el Train Loss definitivo
         de la red.
         """
         if self.trained:
             if epoch is None:
                 return self.net_train_loss
             else:
-                return self.history["loss"][-1]
+                return self.history["loss"][epoch]
         else:
             sendMSG("Aun no se ha entrenado este modelo.", is_warning=True)
 
@@ -326,14 +337,14 @@ class CL_Trainer():
         """
         Devuelve el Validation Loss de una epoca.
 
-        Si  no se especifica ningun valor, devuelve el Validation Loss definitivo
+        Si no se especifica ningun valor, devuelve el Validation Loss definitivo
         de la red.
         """
         if self.trained:
             if epoch is None:
                 return self.net_val_loss
             else:
-                return self.history["val_loss"][-1]
+                return self.history["val_loss"][epoch]
         else:
             sendMSG("Aun no se ha entrenado este modelo.", is_warning=True)
 
@@ -342,14 +353,14 @@ class CL_Trainer():
         """
         Devuelve el Train Accuracy de una epoca.
 
-        Si  no se especifica ningun valor, devuelve el Train Accuracy definitivo
+        Si no se especifica ningun valor, devuelve el Train Accuracy definitivo
         de la red.
         """
         if self.trained:
             if epoch is None:
                 return self.net_train_accuracy
             else:
-                return self.history["accuracy"][-1]
+                return self.history["accuracy"][epoch]
         else:
             sendMSG("Aun no se ha entrenado este modelo.", is_warning=True)
 
@@ -358,14 +369,46 @@ class CL_Trainer():
         """
         Devuelve el Validation Accuracy de una epoca.
 
-        Si  no se especifica ningun valor, devuelve el Validation Accuracy definitivo
+        Si no se especifica ningun valor, devuelve el Validation Accuracy definitivo
         de la red.
         """
         if self.trained:
             if epoch is None:
                 return self.net_val_accuracy
             else:
-                return self.history["val_accuracy"][-1]
+                return self.history["val_accuracy"][epoch]
+        else:
+            sendMSG("Aun no se ha entrenado este modelo.", is_warning=True)
+
+
+    def obtenerFalsePositives(self, epoch=None):
+        """
+        Devuelve los false positives de una epoca.
+
+        Si no se especifica ningun valor, devuelve los false positives definitivos
+        de la red.
+        """
+        if self.trained:
+            if epoch is None:
+                return self.net_false_positives
+            else:
+                return self.history["net_false_positives"][epoch]
+        else:
+            sendMSG("Aun no se ha entrenado este modelo.", is_warning=True)
+
+
+    def obtenerFalsePositives(self, epoch=None):
+        """
+        Devuelve los false negatives de una epoca.
+
+        Si no se especifica ningun valor, devuelve los false negatives definitivos
+        de la red.
+        """
+        if self.trained:
+            if epoch is None:
+                return self.net_false_negatives
+            else:
+                return self.history["net_false_negatives"][epoch]
         else:
             sendMSG("Aun no se ha entrenado este modelo.", is_warning=True)
 
@@ -461,16 +504,10 @@ class CL_Trainer():
         # Definimos la funcion de coste (la que calcula el error)
         loss_fn = torch.nn.MSELoss(reduction='sum')
 
-        # Cambiamos el loss a BCEWithLogitsLoss para ponderar los casos
-        # La ponderacion va dentro de un tensor con con un numero por cada clase en la red, indicando su ponderacion
-        #loss_fn = torch.nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([1, 1]))
 
         # Definimos el optimizador que se encargara de hacer el descenso del gradiente
         optimizer = torch.optim.Adam(model.parameters(), lr=self.learning_rate)
 
-        # Probamos el BCEWithLogitsLoss para reducir los falsos positivos
-        #pesos = torch.Tensor([1,1]) # pesos de cada clase. la idea es penalizar mas la clase que queremos que tenga menos FP
-        #optimizer = torch.optim.BCEWithLogitsLoss(pos_weight=pesos)
 
         return loss_fn, optimizer
 
@@ -485,6 +522,8 @@ class CL_Trainer():
         """ Funcion para evaluar el modelo con los datos que ofrezca el loader """
 
         num_correct = 0
+        num_fp = 0
+        num_fn = 0
         num_samples = 0
         model.eval()
         val_loss_list = []
@@ -499,6 +538,13 @@ class CL_Trainer():
                 predictions = torch.tensor([1.0 if i >= 0.5 else 0.0 for i in scores]).to(device)
                 num_correct += (predictions == y).sum()
                 num_samples += predictions.size(0)
+                for i, p in enumerate(predictions):
+                    if   p.item() == 0 and p.item() != y[i]:
+                        num_fn += 1
+
+                    elif p.item() == 1 and p.item() != y[i]:
+                        num_fp += 1
+
 
                 if (history is not None) and (loss_fn is not None):
                     val_loss_list.append(loss_fn(scores, y).item())
@@ -507,6 +553,9 @@ class CL_Trainer():
             val_loss = np.mean(val_loss_list)
             history["val_loss"].append(val_loss)
             history["val_accuracy"].append(float(num_correct)/float(num_samples))
+            history["false_positives"].append(num_fp)
+            history["false_negatives"].append(num_fn)
+
 
 
 
@@ -556,7 +605,9 @@ class CL_Trainer():
                    "loss": [],
                    "val_loss": [],
                    "accuracy": [],
-                   "val_accuracy": []
+                   "val_accuracy": [],
+                   "false_positives": [],
+                   "false_negatives": []
                    }
 
         # Ponemos el modelo en modo entrenamiento
@@ -597,6 +648,17 @@ class CL_Trainer():
 
                 # Obtenemos el error
                 loss = loss_fn(outputs, labels)
+                # Modificamos el error segun la ponderacion de las dos clases
+                if use_ponderation:
+                    #print("error was " + str(loss.item()))
+                    if predictions[0] == 0:
+                        loss = loss * ponderation_class_0
+                    else:
+                        loss = loss * ponderation_class_1
+
+                    #print("now is " + str(loss.item()))
+
+
                 ent_loss_list.append(loss.item())
 
                 # Back-propagation y entrenamiento
@@ -628,6 +690,8 @@ class CL_Trainer():
                 self.net_train_accuracy = float("NaN")
                 self.net_val_loss = float("NaN")
                 self.net_val_accuracy = float("NaN")
+                self.net_false_positives = float("NaN")
+                self.net_false_negatives = float("NaN")
                 sendMSG("La red contiene NaN", is_warning=True)
                 break
 
@@ -642,7 +706,7 @@ class CL_Trainer():
             epochs_bar.update()
 
 
-            # Early stop. Guardamos la mejor epoca hasta ahora
+            # Save best model. Guardamos la mejor epoca hasta ahora
             # Si esta epoca es la mejor:
             test_loss = history["val_loss"][-1]
             test_acc  = history["val_accuracy"][-1]
@@ -655,17 +719,20 @@ class CL_Trainer():
                 self.net_train_accuracy = history["accuracy"][-1]
                 self.net_val_loss = test_loss
                 self.net_val_accuracy = test_acc
+                self.net_false_positives = history["false_positives"][-1]
+                self.net_false_negatives = history["false_negatives"][-1]
 
                 # Actualizamos el mejor loss
                 self.best_test_loss = test_loss
+                print_inprovement_mark = True
 
 
             # Mostramos las metricas
-            colors = ["#ff6163", "#ff964f", "#20c073", "#b1ff65"]
+            colors = ["#ff6163", "#ff964f", "#20c073", "#b1ff65", "#0099ff", "#00ffff"]
             print("e " + str(epoch) + ":\t ", end="")
             for i, key in enumerate(history):
                 print(str(key) + ": " + fg(colors[i]) + str(round(history[key][epoch], 4)) + self.B + "  ", end="")
-            print()
+            print(" *") if print_inprovement_mark else print()
 
             # Guardamos el historial de metricas
             self.history = history
@@ -726,6 +793,18 @@ class CL_Trainer():
             self.net_train_accuracy = json_data["net_train_accuracy"]
             self.net_val_loss = json_data["net_val_loss"]
             self.net_val_accuracy = json_data["net_val_accuracy"]
+
+            # Nuevos atributos retorcompatibles
+            if "net_false_positives" in json_data:
+                self.net_false_positives = json_data["net_false_positives"]
+            else:
+                self.net_false_positives = -1
+
+
+            if "net_false_negatives" in json_data:
+                self.net_false_negatives = json_data["net_false_negatives"]
+            else:
+                self.net_false_negatives = -1
 
         else:
             # Cargamos los atributos para el entrenamiento
