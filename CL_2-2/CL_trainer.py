@@ -404,7 +404,8 @@ class CL_Trainer():
 
 
 
-    def __obtenerDataLoader(self):
+
+    def __obtenerDataLoader(self, dont_do_transforms = False):
         """
         Funcion que crea y devuelve un par de data loaders, uno de
         entrenamiento y otro de validacion.
@@ -415,7 +416,8 @@ class CL_Trainer():
         """
         # Transformaciones
         img_transforms_list = [transforms.ToTensor(), transforms.Normalize((0),(2000)) ]
-        img_transform = transforms.Compose(img_transforms_list)
+        img_transform = transforms.Compose(img_transforms_list) if dont_do_transforms==False else None
+
 
 
         # dataset (normalizamos las etiquetas entre 0 y 35 para los pesos

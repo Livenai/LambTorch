@@ -7,6 +7,7 @@ from numpy.random import rand, randint, choice
 import numpy as np
 from dict_hash import sha256
 import json
+from ponderation_cfg import *
 
 
 
@@ -65,7 +66,8 @@ def getRandomHyperParamsV1():
     # Obtenemos el hash code y lo ponemos en el nombre
     ret_pair = (hyperparams, net_layers)
     hash_code = getHashCode(ret_pair)
-    hyperparams["model_name"] = "RandModel_" + hash_code
+    pond = "[None]" if use_ponderation else "["+str(ponderation_class_0)+","+str(ponderation_class_1)+"]"
+    hyperparams["model_name"] = "RandModel_P"+pond+"_" + hash_code
 
 
     return ret_pair

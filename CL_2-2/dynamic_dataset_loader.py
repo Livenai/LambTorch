@@ -54,7 +54,7 @@ class CLDL_r1(Dataset):
 
     def __len__(self):
         """ Devuelve la longitud del dataset """
-        return self.num_elements
+        return int(self.num_elements)
 
 
     def __getitem__(self, idx):
