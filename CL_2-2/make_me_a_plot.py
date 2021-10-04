@@ -29,6 +29,8 @@ lamb_model_path   = "CL21_RandModel_5debcadeffa6344a49f2b67aaa2e0884d23f501ec277
 
 OVERRIDE_MAXVALUE = 2000  # -1 = auto detect
 max_out_img_num = -1
+just_one_for_day = False
+diff_days = 10 # Dias de diferencia entre dos pesajes para ser considerados de tandas distintas
 
 
 B = fg(15)
@@ -248,6 +250,7 @@ def getDailyAvgPlot():
     num_no_lamb = 0
     num_fail = 0
     daily_weight = {}
+    one_for_day_done = False
 
     asker = ClasiLamb_2_1_ModelAsker()
     asker.loadModel(os.path.join(parent_folder, lamb_model_path))
@@ -263,10 +266,18 @@ def getDailyAvgPlot():
 
         # estructuramos las imagenes del json
         for key in j:
+            # Control para recoger solo un peso por dia (debug de plot)
+            if just_one_for_day:
+                if one_for_day_done == False:
+                    one_for_day_done = True
+                else:
+                    one_for_day_done = False
+                    break
             # Comprobacion de maximo de imagenes. -1 para que no haya limite
             if max_out_img_num >= 0:
                 if num_lamb == max_out_img_num:
                     break
+
 
             # cargamos cada imagen
             img_path = raw_dataset_path + str(j[key]["path_depth_default_image"])
@@ -309,6 +320,7 @@ def getDailyAvgPlot():
             res, val = asker.ask(img)
             if res == 1.0:
                 is_correct_lamb = False
+                one_for_day_done = False
             elif res == 0.0:
                 is_correct_lamb = True
 
@@ -408,6 +420,225 @@ def getDailyAvgPlot():
 
 
 
+################################################################################
+################################################################################
+################################################################################
+"""                             DAILY AVG MULTI-PLOT                               """
+################################################################################
+################################################################################
+################################################################################
+
+
+
+
+def getDailyAvgMultiPlot():
+
+    num_images = 0
+
+    # contamos las imagenes totales
+    for json_number, json_name in enumerate(glob.glob(os.path.join(saving_path, '*.json'))):
+
+        f = open(json_name)
+        j = json.load(f)
+
+        i = 0
+        for key in j:
+            num_images = num_images + 1
+            i += 1
+        print("Numero del Json: " + V + str(json_number) + B)
+        print("Imagenes en el Json: " + V + str(i) + B, end='\n\n')
+
+
+
+    print(attr(4) + "Imagenes Totales:" + attr(0) + " " + V + str(num_images) + B, end='\n\n')
+
+
+
+    i2 = 0
+    label_list = []
+    num_lamb = 0
+    num_no_lamb = 0
+    num_fail = 0
+    daily_weight = {}
+    one_for_day_done = False
+
+    asker = ClasiLamb_2_1_ModelAsker()
+    asker.loadModel(os.path.join(parent_folder, lamb_model_path))
+
+    # para todos los .json de labels
+    for json_number, json_name in enumerate(glob.glob(os.path.join(saving_path, '*.json'))):
+
+        f = open(json_name)
+        j = json.load(f)
+        json_key_name = json_name[json_name.rfind("/")+1:json_name.rfind(".")-1]
+        daily_weight[json_key_name] = []
+
+
+        # estructuramos las imagenes del json
+        for key in j:
+            # Control para recoger solo un peso por dia (debug de plot)
+            if just_one_for_day:
+                if one_for_day_done == False:
+                    one_for_day_done = True
+                else:
+                    one_for_day_done = False
+                    break
+            # Comprobacion de maximo de imagenes. -1 para que no haya limite
+            if max_out_img_num >= 0:
+                if num_lamb == max_out_img_num:
+                    break
+
+
+            # cargamos cada imagen
+            img_path = raw_dataset_path + str(j[key]["path_depth_default_image"])
+            img = cv2.imread(img_path, flags=cv2.IMREAD_ANYDEPTH)
+
+            # comprobamos si la imagen existe y ha sido cargada correctamente (si no, saltamos a la siguiente)
+            try:
+                if len(img) == 0:
+                    print("[!] Error al cargar la imagen: " + V + str(img_path) + B)
+                    exit()
+            except:
+                num_fail += 1
+                i2 += 1
+                continue
+
+            # preparamos la imagen para ser normalizada posteriormente (todo pixel que supere OVERRIDE_MAXVALUE se queda en OVERRIDE_MAXVALUE)
+            if OVERRIDE_MAXVALUE != -1:
+                img = np.clip(img, None, OVERRIDE_MAXVALUE)
+
+            """
+            # le hacemos crop
+            x = 38
+            y = 102
+            h = 230
+            w = 510
+            img = img[y:y + h, x:x + w]
+            """
+
+
+            # invertimos la imagen
+            # if OVERRIDE_MAXVALUE != -1:
+            #   img = OVERRIDE_MAXVALUE-img
+
+
+            # Normalizamos
+            #img = img/OVERRIDE_MAXVALUE
+
+            # Preguntamos a la red si la imagen es correcta
+            # Si es correcta, la red sacara un 0, si no, sacara un 1
+            res, val = asker.ask(img)
+            if res == 1.0:
+                is_correct_lamb = False
+                one_for_day_done = False
+            elif res == 0.0:
+                is_correct_lamb = True
+
+            # Si la imagen es correcta guardamos la imagen y la etiqueta, si no, descartamos
+            if is_correct_lamb:
+
+
+                # Acumulamos el peso en su dia, en funcion del nombre del json
+                daily_weight[json_key_name].append(float(j[key]["weight"]))
+
+
+
+                num_lamb += 1
+
+            else:
+                num_no_lamb += 1
+
+
+            i2 += 1
+            printProgressBar(i2, num_images, prefix='Estructurando JSON ' + str(json_number) + ':', suffix='Completado',length=50,color=33)
+
+
+
+    # Procesamos el json en dos listas para pasarselo a la plot
+    # Pasamos de YYYY-MM-DD a DD-MM-YYYY
+
+    x_values = [str(key) for key in daily_weight.keys()]
+
+    x_values.sort(key = lambda v: datetime.strptime(v, '%Y-%m-%d'), reverse=False)
+
+
+    y_values = []
+    for k in x_values:
+        try:
+            y_values.append(mean(daily_weight[k]))
+        except:
+            y_values.append(0)
+
+    # Cortamos las listas en trocitos que correspondan a los periodos de tiempo seguidos
+    long_x_list = [datetime.strptime(x, '%Y-%m-%d').strftime('%d-%m-%Y') for x in x_values]
+    long_y_list = y_values
+
+
+    past_date = None
+    all_json = {"0": {"x": [], "y": []}}
+    current_set_int_key = 0
+    for i in range(len(long_x_list)):
+        tandas_diferentes = False
+        current_date = long_x_list[i]
+
+        # Obtenemos los datos de fecha y comparamos
+        if past_date == None:
+            # Primera fecha, no comprobamos nada
+            tandas_diferentes = False
+        else:
+            # Comparamos fechas, as ver si se difieren en diff_days dias
+            time_diff = datetime.strptime(current_date, '%d-%m-%Y') - datetime.strptime(past_date, '%d-%m-%Y')
+            if time_diff.days >= 10:
+                tandas_diferentes = True
+            else:
+                tandas_diferentes = False
+
+        if tandas_diferentes:
+            # Si este peso es de tanda diferente, terminamos esta
+            # tanda y preparamos la siguiente
+            current_set_int_key += 1
+            all_json[str(current_set_int_key)] = {"x": [], "y": []}
+
+
+        # Acumulamos un dia mas y preparamos el siguiente dia
+        all_json[str(current_set_int_key)]["x"].append(current_date)
+        all_json[str(current_set_int_key)]["y"].append(long_y_list[i])
+
+        past_date = current_date
+
+
+
+    # Montamos la plot de cantidades
+    color_list = ["deepskyblue", "aquamarine", "limegreen", "yellow", "gold", "darkorange", "lightcoral", "orchid", "mediumpurple"]
+
+    num_lambs = len(all_json)
+
+    fig, axs = plt.subplots(num_lambs)
+
+    for i, key in enumerate(all_json):
+
+        x_values = all_json[key]["x"]
+        y_values = all_json[key]["y"]
+
+
+
+        key_number = int(str(key))
+        bars = axs[i].bar(x_values, y_values, color=color_list[i])
+        autolabel(bars, axs[i])
+
+        plt.sca(axs[i])
+        plt.xticks(rotation=-40, ha="left", size=8)
+        plt.ylabel("Peso [Kg]")
+        plt.title("Tanda de pesos " + str(key), size = 20)
+
+
+
+
+    plt.show()
+
+    fig.set_size_inches((20, 10*num_lambs))
+
+    fig.savefig("plot.png", dpi=300)
 
 
 
@@ -432,4 +663,4 @@ def getDailyAvgPlot():
 ################################################################################
 ################################################################################
 
-getDailyAvgPlot()
+getDailyAvgMultiPlot()
